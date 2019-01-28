@@ -124,7 +124,48 @@ That all looks like this:
 
 Big question, what is the DefaultWorkingDirectory?  Yesterday we had to create an few things in order to get to the point where we dragged the zip file into the container.  After reading that the server could build the project for us without zipping up the entire dev dependencies which were not used I found this project to solve that issue.  Right now it's worth a commit and push to see what happens with those tasks.
 
+After a push to master, we see our new badge (yay!) but the CopyFiles task is still pending after 9 minutes.  After 12m 10s the tasks all say successful.
 
+So where did the deployment go?  What we want is it to go to an Azure App Service.  After looking around many of the links on the dev.azure.com portal, I'm still not able to find this out.  [This SO answer](https://stackoverflow.com/questions/39905758/where-is-system-defaultworkingdirectory-set-for-builds-in-tfs2015) shows an old 2016 dashboard with a variables view.  Doing a search on our dashboard returns *No work items found for 'variables' with applied filters*.  Great.
+
+After the *[Next Steps](https://docs.microsoft.com/en-us/azure/devops/pipelines/get-started-yaml?view=azdevops#next-steps)* section from the Azure DevOps Pipeline tutorial, there is a link under the NodeJS one that took us back to the main tutorial used to get here.
+
+To run your pipeline in a container, see [Container jobs](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/container-phases?view=azdevops).  But this says it's for more serious deployments when you want to use containers instead of standard deployments.  What we want is the standard straightforward way to push to our app service.  The page does say *deployment group jobs are not yet supported in YAML*.  Good to find that out now.
+
+There is a [Deploy a web app](https://docs.microsoft.com/en-us/azure/devops/pipelines/languages/javascript?view=azdevops&tabs=yaml#deploy-a-web-app) section in the main tutorial.  It has an ArchiveFiles task.  But we already have the ArchiveFiles task.  There is a link after that [to publish this archive to a web app](https://docs.microsoft.com/en-us/azure/devops/pipelines/targets/webapp?view=azdevops).
+
+This is the tutorial where it has the [.NET example](https://github.com/MicrosoftDocs/pipelines-dotnet-core).  Not going to help our NodeJS app, unless the yaml file shows how it's done.  It's work skimming this page to see if we can learn enough to make this last step in our pipeline.
+
+This is the task shown:
+```
+- task: AzureRmWebAppDeployment@3
+  inputs:
+    azureSubscription: '<Azure service connection>'
+    WebAppName: '<Name of web app>'
+    Package: $(System.ArtifactsDirectory)/**/*.zip
+```
+
+It's work creating a new service like yesterday and filling that in here.  Then we can leave the currently working strumosa project alone.  Call is strumosa-app?
+
+First continue skimming.  There is a JS section with this taks:
+```
+- task: AzureRmWebAppDeployment@3
+  inputs:
+    azureSubscription: '<Azure service connections>'
+    WebAppName: '<Name of web app>'
+    Package: '$(System.DefaultWorkingDirectory)'
+    GenerateWebConfig: true
+    WebConfigParameters: '-Handler iisnode -NodeStartFile server.js -appType node'
+```
+
+The notes still say that for a NodeJS app you publish the entire contents of your working directory to the web app.  At least it's not the user zipping and uploading the entire project in this case, but it still seems like an anti-pattern to do deployments like that.
+
+To make this work, we need to figure out what *Azure service connections* are.  This is another tangent starting with another web page in the [deployments section](https://docs.microsoft.com/en-us/azure/devops/pipelines/targets/webapp?view=azdevops&tabs=yaml#endpoint) of the Azure DevOps documentation.  It says *the Azure service connection stores the credentials to connect from Azure Pipelines*.  This section then links to another page title [Create an Azure service connection](https://docs.microsoft.com/en-us/azure/devops/pipelines/library/connect-to-azure?view=azdevops).  This says we need a *Azure Resource Manager service*.  These are managed in the DevOps/Project Settings/Service connections section of the portal.
+
+While following those directions, this error came up in the modal:
+*Could not authenticate to Azure Active Directory. If a popup blocker is enabled in the browser, disable it and try again.*  It was just trying to open an OAuth login page.  This done and all seems to be working again.
+
+Now we are instructed to use the name we created, strumosa-app, as the azureSubscription value in the task shown above.  To speed things up, lets just try to re-used the strumosa app created yesterday.  This goes in the WebAppName.  Lets do another deployment and see how that goes.
 
 
 ## Links
