@@ -1,5 +1,22 @@
 # Sample NodeJS application for Azure Pipelines docs
 
+
+## Getting started
+
+Taking a look at the sample I have mixed feelings about it as it uses Gulp, Mocha, and Istanbul for running tests and coverage.  Since we had already decided on NPM and Jest to cover these bases, it seems like a backwards step.  Gulp was all the rave back in 2014, but by the time Angular came out of AngularJS, it was decided that one build ssytem was enough, and the NPM should take the place of Grunt, Gulp and the other front and back end build systems.  So again I'm questioning Microsoft's level of commitment to JavaScript when their code examples rely on out dated tech.
+
+But, on the pro side, this repo is set up for Docker with a CI pipeline.  It is strongly recommended that you use a pre-build Docker image for a particular service such as Azure, so really, a functioning CI pipeline should be a starting point, and we can always setup our own linting, testing and building as we have done with this project so far.
+
+So time to see how this pipeline goes.
+
+First we will follow the instructions in [Create your first pipeline](https://docs.microsoft.com/en-us/azure/devops/pipelines/get-started-yaml?view=azdevops) to create a build pipeline for the sample app.
+
+Right at the start there is [another link](https://go.microsoft.com/fwlink/?LinkId=307137) because you need an Azure DevOps organization first.  The link asks you to login to your MS account and then create the new project first, which we called strumosa-pipe to align with out strumosa project.
+
+The [sample code](https://github.com/MicrosoftDocs/pipelines-javascript).
+
+
+## Links
 For information on how to use this repository, see [JavaScript](https://docs.microsoft.com/azure/devops/pipelines/languages/javascript).
 
 | Example | Build status |
@@ -11,7 +28,7 @@ For information on how to use this repository, see [JavaScript](https://docs.mic
 | Build image and push to Azure Container Registry | [![Build status](https://dev.azure.com/pipelines-docs/docs/_apis/build/status/javascript/nodejs-acr)](https://dev.azure.com/pipelines-docs/docs/_build/latest?definitionId=11) |
 | Build image and push to Azure Container Registry (YAML) | [![Build status](https://dev.azure.com/pipelines-docs/docs/_apis/build/status/javascript/nodejs-acr-yaml)](https://dev.azure.com/pipelines-docs/docs/_build/latest?definitionId=12) |
 
-# Contributing
+## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
