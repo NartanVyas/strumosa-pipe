@@ -34,6 +34,44 @@ done();
 
 How can response.statusCode even work if the response is undefined?
 
+Perplexed, I moved on and created the add API and pushed to change to master.  Got our first red bar in the pipeline:
+```
+NodeTool 1 error 3m 13s
+/bin/tar failed with return code: 2
+```
+
+In PublishTestResults, a [warning] No test result files matching **/TEST-RESULTS.xml were found.
+That file was removed as we just wanted output to the console instead of an xml file (that's so 2001!).
+But the deployment was skipped, so this wont work yet:
+```
+http://strumosa.azurewebsites.net/add?arg1=1&arg2=1
+```
+
+So what does error 2 mean?
+```
+2019-01-28T12:07:06.3646826Z Task         : Node Tool Installer
+2019-01-28T12:07:06.3646982Z Description  : Finds or Downloads and caches specified version spec of Node and adds it to the PATH.
+...
+2019-01-28T12:07:09.9713067Z Downloading: https://nodejs.org/dist/v8.15.0/node-v8.15.0-linux-x64.tar.gz
+2019-01-28T12:10:18.7837033Z Extracting archive
+2019-01-28T12:10:18.7875172Z [command]/bin/tar xzC /home/vsts/work/_temp/a404ed76-2fd4-4483-a23d-6805c88cee26 -f /home/vsts/work/_temp/fe15c40a-f267-4d85-8071-ecc6b1939196
+2019-01-28T12:10:19.4165117Z 
+2019-01-28T12:10:20.2088486Z gzip: stdin: unexpected end of file
+2019-01-28T12:10:20.2088985Z /bin/tar: Unexpected EOF in archive
+2019-01-28T12:10:20.2089125Z /bin/tar: Unexpected EOF in archive
+2019-01-28T12:10:20.2089407Z /bin/tar: Error is not recoverable: exiting now
+2019-01-28T12:10:20.2146988Z ##[error]/bin/tar failed with return code: 2
+```
+
+Except for the passing failed tests, the API works locally as expected:
+```
+http://localhost:3000/add?arg1=1&arg2=2
+```
+
+This might be because we are using a starter app that relies partly on the reporting done from the test command.  It's just an idea.  The error might also be just a failed download.  But it seems I can't just rerun or restart the pipe.
+
+Will put the coverage back in and try again.
+
 ## Getting started
 
 Taking a look at the sample I have mixed feelings about it as it uses Gulp, Mocha, and Istanbul for running tests and coverage.  Since we had already decided on NPM and Jest to cover these bases, it seems like a backwards step.  Gulp was all the rave back in 2014, but by the time Angular came out of AngularJS, it was decided that one build ssytem was enough, and the NPM should take the place of Grunt, Gulp and the other front and back end build systems.  So again I'm questioning Microsoft's level of commitment to JavaScript when their code examples rely on out dated tech.
