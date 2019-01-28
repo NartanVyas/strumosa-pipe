@@ -3,6 +3,17 @@
 [![Build Status](https://dev.azure.com/timofeyc/strumosa-pipe/_apis/build/status/timofeysie.strumosa-pipe?branchName=master)](https://dev.azure.com/timofeyc/strumosa-pipe/_build/latest?definitionId=1?branchName=master)
 
 
+# Table of Contents
+
+1. [API Testing](#api-testing)
+1. [Getting started](#getting-started)
+1. [Best practices](#best-practices)
+1. [Links](#links)
+1. [Contributing](#contributing)
+1. [Legal Notices](#legal-notices)
+
+
+#
 ## API Testing
 
 Starting out with Mocha and the Chai expect library, we want to write some tests and then make them pass in good TDD fashion.  Creating a helper function to add two numbers together and testing it was easy enough.  Then writing a test to get the values from an API and right away there is trouble.  All the tests are passing.  They shouldn't be.  I haven't written the server API for it yet, and what's more, the server is not running.  So why are the tests passing?
@@ -70,7 +81,44 @@ http://localhost:3000/add?arg1=1&arg2=2
 
 This might be because we are using a starter app that relies partly on the reporting done from the test command.  It's just an idea.  The error might also be just a failed download.  But it seems I can't just rerun or restart the pipe.
 
-Will put the coverage back in and try again.
+Will put the coverage back in and try again.  Made a spelling mistake in the commit message.  I hate that.  Should add a spell checker to the pipeline.
+
+Anyhow, after putting back the nyc reporting and corbertura coverage, etc, the NodeTool doesn't fail:
+nyc --reporter=cobertura 
+    --reporter=html ./node_modules/.bin/mocha tests/**/*.js 
+    --reporter mocha-junit-reporter 
+    --reporter-options mochaFile=./TEST-RESULTS.xml"
+}
+
+Our API works.  Now to get the tests to be real.  The successful test report from the pipeline run:
+```
+2019-01-28T12:29:10.6265297Z ; cli configs
+2019-01-28T12:29:10.6265624Z metrics-registry = "https://registry.npmjs.org/"
+2019-01-28T12:29:10.6265760Z scope = ""
+2019-01-28T12:29:10.6266022Z user-agent = "npm/6.4.1 node/v8.15.0 linux x64"
+2019-01-28T12:29:10.6266141Z 
+2019-01-28T12:29:10.6266211Z ; environment configs
+2019-01-28T12:29:10.6266367Z userconfig = "/home/vsts/work/1/npm/5.npmrc"
+2019-01-28T12:29:10.6266421Z 
+2019-01-28T12:29:10.6266566Z ; node bin location = /opt/hostedtoolcache/node/8.15.0/x64/bin/node
+2019-01-28T12:29:10.6266657Z ; cwd = /home/vsts/work/1/s
+2019-01-28T12:29:10.6266775Z ; HOME = /home/vsts
+2019-01-28T12:29:10.6267498Z ; "npm config ls -l" to show all defaults.
+2019-01-28T12:29:10.6267630Z 
+2019-01-28T12:29:10.6267931Z [command]/opt/hostedtoolcache/node/8.15.0/x64/bin/npm test
+2019-01-28T12:29:12.1304220Z 
+2019-01-28T12:29:12.1305119Z > HelloWorld@0.0.0 test /home/vsts/work/1/s
+2019-01-28T12:29:12.1306212Z > nyc --reporter=cobertura --reporter=html ./node_modules/.bin/mocha tests/**/*.js --reporter mocha-junit-reporter --reporter-options mochaFile=./TEST-RESULTS.xml
+2019-01-28T12:29:12.1306574Z 
+2019-01-28T12:29:12.1306757Z body undefined
+```
+
+The body comment should be the body of the result, which should be "2" after adding 1 + 1.  So here again we see passing failing tests.
+
+Two hints here.  All the async tests pass, but if you assert the wrong result for the actual demo.js package test, the test fails as expected.
+
+Also, the console log outputs always get printed in a slightly different order.  So it's an async problem.  Switched expect from chai to chai-as-promised but that didn't change anything.
+
 
 ## Getting started
 
@@ -293,7 +341,7 @@ For information on how to use this repository, see [JavaScript](https://docs.mic
 
 ## Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
+The [original starter](https://github.com/MicrosoftDocs/pipelines-javascript) for this project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the rights to use your contribution. For details, visit https://cla.microsoft.com.
 
@@ -305,7 +353,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-# Legal Notices
+## Legal Notices
 
 Microsoft and any contributors grant you a license to the Microsoft documentation and other content
 in this repository under the [Creative Commons Attribution 4.0 International Public License](https://creativecommons.org/licenses/by/4.0/legalcode),

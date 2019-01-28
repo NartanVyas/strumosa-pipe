@@ -16,7 +16,7 @@ app.get("/add", function(req, res) {
     const arg1   = parseInt(req.query.arg1, 10);
     const arg2   = parseInt(req.query.arg2, 10);
     const result = demo.add(arg1,arg2);
-    console.log('add result',result);
+    console.log('add '+arg1+' + '+arg2+' = '+result);
     res.send(result.toString());
 });
 
