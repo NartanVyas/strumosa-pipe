@@ -3,6 +3,37 @@
 [![Build Status](https://dev.azure.com/timofeyc/strumosa-pipe/_apis/build/status/timofeysie.strumosa-pipe?branchName=master)](https://dev.azure.com/timofeyc/strumosa-pipe/_build/latest?definitionId=1?branchName=master)
 
 
+## API Testing
+
+Starting out with Mocha and the Chai expect library, we want to write some tests and then make them pass in good TDD fashion.  Creating a helper function to add two numbers together and testing it was easy enough.  Then writing a test to get the values from an API and right away there is trouble.  All the tests are passing.  They shouldn't be.  I haven't written the server API for it yet, and what's more, the server is not running.  So why are the tests passing?
+```
+  Calculator API
+    Addition
+      ✓ returns status 200
+response undefined
+error { Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1117:14)
+  errno: 'ECONNREFUSED',
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000 }
+      ✓ returns two arguments added together
+
+  Demo suite
+body undefined
+    calculator
+      ✓ should add two numbers
+```
+
+We are doing this in the first test:
+```
+expect(response.statusCode).to.equal(200);
+done();
+```
+
+How can response.statusCode even work if the response is undefined?
+
 ## Getting started
 
 Taking a look at the sample I have mixed feelings about it as it uses Gulp, Mocha, and Istanbul for running tests and coverage.  Since we had already decided on NPM and Jest to cover these bases, it seems like a backwards step.  Gulp was all the rave back in 2014, but by the time Angular came out of AngularJS, it was decided that one build ssytem was enough, and the NPM should take the place of Grunt, Gulp and the other front and back end build systems.  So again I'm questioning Microsoft's level of commitment to JavaScript when their code examples rely on out dated tech.
@@ -166,6 +197,48 @@ While following those directions, this error came up in the modal:
 *Could not authenticate to Azure Active Directory. If a popup blocker is enabled in the browser, disable it and try again.*  It was just trying to open an OAuth login page.  This done and all seems to be working again.
 
 Now we are instructed to use the name we created, strumosa-app, as the azureSubscription value in the task shown above.  To speed things up, lets just try to re-used the strumosa app created yesterday.  This goes in the WebAppName.  Lets do another deployment and see how that goes.
+
+Going back to the portal pipeline builds section to watch the action unfold.  Wait.  It took 12 minutes to complete last time.  Might just go an do something else for a while.
+
+After it's all done, we can check http://strumosa.azurewebsites.net to see if it is now holding our new server app.
+
+And it does.  We now see the server responding with a new response.  One push to master now starts the pipeline which ends in a deployment to master.  We can always use the old strumosa project for other best practices work.  Since it's set up with Airbnb linting and Jest testing and coverage, it's a good place to go to try things out.
+
+Time to create a development branch to do work and test locally and then only push to master when that is all working.
+
+## Best practices
+
+More notes from the [best practices for NodeJS](https://github.com/i0natan/nodebestpractices#4-testing-and-overall-quality-practices)
+
+### Delegate anything possible (e.g. static content, gzip) to a reverse proxy
+
+Options:
+* nginx
+* HAproxy 
+* S3
+* CDN
+
+*It’s very tempting to cargo-cult Express and use its rich middleware offering for networking related tasks like serving static files, gzip encoding, throttling requests, SSL termination, etc. This is a performance kill due to its single threaded model which will keep the CPU busy for long periods (Remember, Node’s execution model is optimized for short tasks or async IO related tasks). A better approach is to use a tool that expertise in networking tasks – the most popular are nginx and HAproxy.*
+
+*Attempting to have Node deal with all of the complicated things that a proven web server does really well is a bad idea.  This is just for one request, for one image and bearing in mind this is the memory that the application could be used for important stuff.*
+
+This connects with *5.11. Get your frontend assets out of Node*
+
+Serve frontend content using dedicated middleware.
+
+Limit the body size of incoming requests on the edge (e.g. firewall, ELB) or by configuring express body parser to accept only small-size payloads
+
+### 5.12. Be stateless, kill your Servers almost every day
+
+This is what AWS Lambda enforces, right?
+
+### Create a ‘maintenance endpoint’
+
+Expose a set of system-related information, like memory usage and REPL, etc in a secured API. 
+
+### Embrace linter security rules
+
+use of security-related linter plugins such as eslint-plugin-security
 
 
 ## Links
