@@ -1,12 +1,12 @@
-//var assert = require('assert');
-var expect = require("chai").expect;
-var demo = require("../app/demo");
+// var assert = require('assert');
+const expect = require('chai').expect;
+const demo = require('../app/demo');
 
-describe('Demo suite', function () {
-    describe('calculator', function () {
-        it('should add two numbers', function () {
-            const result = demo.add(1,1);
-            expect(result).to.equal(2);
-        });
+describe('Demo suite', () => {
+  describe('calculator', () => {
+    it('should add two numbers', () => {
+      const result = demo.add(1, 1);
+      expect(result).to.equal(2);
     });
+  });
 });

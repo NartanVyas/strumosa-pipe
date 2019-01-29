@@ -1,7 +1,8 @@
-# A NodeJS application with an Azure DevOps Pipeline
+# Strumosa-pipe
 
 [![Build Status](https://dev.azure.com/timofeyc/strumosa-pipe/_apis/build/status/timofeysie.strumosa-pipe?branchName=master)](https://dev.azure.com/timofeyc/strumosa-pipe/_build/latest?definitionId=1?branchName=master)
 
+A NodeJS application with an Azure DevOps Pipeline
 
 # Table of Contents
 
@@ -118,6 +119,437 @@ The body comment should be the body of the result, which should be "2" after add
 Two hints here.  All the async tests pass, but if you assert the wrong result for the actual demo.js package test, the test fails as expected.
 
 Also, the console log outputs always get printed in a slightly different order.  So it's an async problem.  Switched expect from chai to chai-as-promised but that didn't change anything.
+
+
+
+#
+## Linting
+
+Among the best practices are the basics of linting, as we as security-related linter plugins such as eslint-plugin-security.  We will want to embrace it all to keep our code as clean as possible with the least effort as possible.
+
+
+The standard is [ESlint](https://eslint.org/docs/developer-guide/nodejs-api).  Setting it up goes something like this.
+
+```
+npm install eslint --save-dev
+./node_modules/.bin/eslint --init
+-bash: /node_modules/.bin/eslint: No such file or directory
+npm run lint -- --init
+? How would you like to configure ESLint? Use a popular style guide
+? Which style guide do you want to follow? 
+❯ Airbnb (https://github.com/airbnb/javascript) 
+  Standard (https://github.com/standard/standard) 
+  Google (https://github.com/google/eslint-config-google) 
+```
+
+Airbnb standard or Google?
+*If you prefer a lighter touch from your linter, Google is probably the best choice. If you are interested in having a strongly opinionated linter that provides additional validation and React support out of the box, AirBnB is the style guide for you.* ([source](https://medium.com/@uistephen/style-guides-for-linting-ecmascript-2015-eslint-common-google-airbnb-6c25fd3dff0)).
+
+I chose Google for the initial project since this server app might be used with Angular.  If it was React then I would have gone for Airbnb.  
+
+One difference in the setup from this project and the first Azure hello world project was this error:
+```
+Oops! Something went wrong! :(
+ESLint: 5.12.1.
+No files matching the pattern "node_modules/ipaddr.js" were found.
+Please check for typing mistakes in the pattern.
+```
+
+After a quick google, the solution was to escape the pattern matcher:
+```
+"lint": "eslint \"**/*.js\" --fix",
+```
+
+Running the linter for the first time results in the first project produced this output:
+```
+$ npm run lint
+> app-service-hello-world@0.0.1 lint /Users/tim/node/azure/nodejs-docs-hello-world-master
+> eslint **/*.js
+/Users/tim/node/azure/nodejs-docs-hello-world-master/index.js
+   1:1   error  Unexpected var, use let or const instead      no-var
+   3:1   error  Unexpected var, use let or const instead      no-var
+   4:1   error  Expected indentation of 2 spaces but found 4  indent
+   4:30  error  Strings must use singlequote                  quotes
+   4:46  error  Strings must use singlequote                  quotes
+   5:1   error  Expected indentation of 2 spaces but found 4  indent
+   5:18  error  Strings must use singlequote                  quotes
+   8:1   error  Unexpected var, use let or const instead      no-var
+  11:13  error  Strings must use singlequote                  quotes
+✖ 9 problems (9 errors, 0 warnings)
+  6 errors and 0 warnings potentially fixable with the `--fix` option.
+npm ERR! Darwin 18.2.0
+npm ERR! argv "/Users/tim/.nvm/versions/node/v6.9.2/bin/node" "/Users/tim/.nvm/versions/node/v6.9.2/bin/npm" "run" "lint"
+npm ERR! node v6.9.2
+npm ERR! npm  v3.10.9
+npm ERR! code ELIFECYCLE
+npm ERR! app-service-hello-world@0.0.1 lint: `eslint **/*.js`
+npm ERR! Exit status 1
+npm ERR! 
+npm ERR! Failed at the app-service-hello-world@0.0.1 lint script 'eslint **/*.js'.
+```
+
+Since the reporting is set for errors not warnings, npm exits.  Probably we want to change this.
+First of all, any lib using var in 2019 has problems.  So right out of the box I am questioning Microsoft's ability to keep up.  Yes, they made VSCode which I'm using right now.  But that's one team out of many.  The people running Azure don't pay much attention to NodeJS to ship an example app using var.
+
+Rant over.  I would prefer tabs of 4 spaces but couldn't easily figure out how to modify the Google style guide and am not that attached to it.  Single quotes, of course.
+
+But still getting this error:
+```
+  3:1  error  Parsing error: The keyword 'const' is reserved
+```
+
+Changed const to let and got this error:
+```
+  1:5  error  Parsing error: Unexpected token http
+```
+
+This [SO](https://stackoverflow.com/questions/36001552/eslint-parsing-error-unexpected-token) answer says unexpected token errors in ESLint parsing occur due to incompatibility between the development environment and ESLint's current parsing capabilities with the ongoing changes with JavaScripts.
+
+As of now, we cannot ignore this setting as it is in some Google file we will have to find.
+
+The recommended fix for the const keyword error is this in the eslintrc file:
+```
+{
+    "parserOptions": {
+        "ecmaVersion": 2017
+    },
+
+    "env": {
+        "es6": true
+    }
+}
+```
+
+But this doesn't work for us.
+Then I realized that my answer to use a JS style of lint file in the init process created another .eslintrc file with a .js extension, and my changes the the .eslintrc were not taking effect.  Removed the Google styles and configured them manually and now it works.
+
+Next is making it run as part of a build pipeline.
+
+But when adding Jest testing, it was decided to go with Airbnb after all for its super strict approach.  This was done using this command:
+```
+npx install-peerdeps --dev eslint-config-airbnb-base
+```
+
+We changed the ```.eslintrc.js``` file to include the Jest plugin.  After the first run we get this:
+```
+/Users/tim/node/azure/nodejs-docs-hello-world-master/index.js
+   3:34  warning  Unexpected unnamed function                       func-names
+   3:34  error    Unexpected function expression                    prefer-arrow-callback
+   3:42  error    Missing space before function parentheses         space-before-function-paren
+   4:1   error    Expected indentation of 2 spaces but found 1 tab  indent
+   4:2   error    Unexpected tab character                          no-tabs
+   4:26  error    A space is required after '{'                     object-curly-spacing
+   4:55  error    A space is required before '}'                    object-curly-spacing
+   5:1   error    Expected indentation of 2 spaces but found 1 tab  indent
+   5:2   error    Unexpected tab character                          no-tabs
+  11:1   warning  Unexpected console statement                      no-console
+✖ 10 problems (8 errors, 2 warnings)
+  6 errors and 0 warnings potentially fixable with the `--fix` option.
+```
+
+Wow, that is super strict.  Changing this
+```
+http.createServer(function(request, response) {
+```
+
+To this
+```
+http.createServer((request, response) => {
+```
+
+Got us down to ```7 problems (6 errors, 1 warning)```.  Going to try the --fix option now.
+```
+  11:1  warning  Unexpected console statement  no-console
+✖ 1 problem (0 errors, 1 warning)
+```
+
+That was great.  Might leave that flag in the package.json script for good.
+
+Another thing we need to do is create the src directory and move our code there.  That's a basic best practice.  But, not sure how having the index file in a sub directory will affect our Azure deployment, so going to hold off on moving the index file there for now.  Everything else can go there.
+
+Here is a list of the AirBnB linting requirements:
+* Semicolon: Required
+* Trailing Commas: Required
+* Template strings: Prefer
+* Import Extensions: None
+* Space before function parentheses: None
+* Object Curly Spacing: Yes
+* Array Bracket Spacing: None
+* Underscored functions: None
+* Object Destructuring: Prefer
+* React Ordering: Opinionated
+* React Prop Validation: Required
+* Arrow Functions Return Assignment: No
+* Object Property Shorthand: Prefer
+
+Back to the current pipeline project, the first run of the linter produced pages and pages of output.
+```
+/Users/tim/node/azure/pipelines-javascript/app/demo.js
+  1:15  warning  Unexpected unnamed function  func-names
+/Users/tim/node/azure/pipelines-javascript/coverage/block-navigation.js
+  12:35  error  'document' is not defined  no-undef
+  50:5   error  Expected a default case    default-case
+  63:1   error  'window' is not defined    no-undef
+/Users/tim/node/azure/pipelines-javascript/coverage/prettify.js
+   1:1     error    'window' is not defined                                                    no-undef
+   1:44    warning  Unexpected unnamed function          
+...
+```   
+
+Obviously we only want our src to be linted.  We do have an app directory, but how can we add one file outside that, namely the server.js file?  Just try and add both like this:
+```
+> eslint server.js "./app/**/*.js" --fix
+/Users/tim/node/azure/pipelines-javascript/server.js
+  19:3  warning  Unexpected console statement  no-console
+  25:1  warning  Unexpected console statement  no-console
+/Users/tim/node/azure/pipelines-javascript/app/demo.js
+  1:15  warning  Unexpected unnamed function  func-names
+✖ 3 problems (0 errors, 3 warnings)
+```
+
+Works on the first try.  Lucky guess.
+
+
+#
+## Node Best practices
+
+In an effort to better define the code in the server app, we're going to be applying the Node best practices described [here](https://github.com/i0natan/nodebestpractices).  Below are some notes to get started with.
+
+
+### Code structure
+
+Put modules/libraries in a folder, place an index.js file that exposes the module's internals so every consumer will pass through it. This serves as an 'interface' and eases future changes without breaking the contract.
+
+Instead of this:
+```
+module.exports.SMSProvider = require('./SMSProvider/SMSProvider.js');
+module.exports.SMSNumberResolver = require('./SMSNumberResolver/SMSNumberResolver.js');
+```
+
+Do this:
+```
+module.exports.SMSProvider = require('./SMSProvider');
+module.exports.SMSNumberResolver = require('./SMSNumberResolver');
+```
+
+Component folder example
+```
+index
+model
+modelAPI
+modelController
+modelDAL
+modelError
+modelService
+modelTesting
+```
+
+Separate the Express definition to at least two files: 
+1. the API declaration (app.js) 
+2. the networking concerns (WWW). 
+
+Locate API declarations within components.
+
+keys can be read from file and from environment variable.
+secrets are kept outside committed code
+config is hierarchical for easier findability. 
+(example packages: rc, nconf and config)
+
+
+
+### Async error handling
+Async-await instead enables a much more compact code syntax like try-catch.
+
+```
+var userDetails;
+function initialize() {
+    // Setting URL and headers for request
+    var options = {
+        url: 'https://api.github.com/users/narenaryan',
+        headers: {
+            'User-Agent': 'request'
+        }
+    };
+    // Return new promise 
+    return new Promise(function(resolve, reject) {
+     // Do async job
+        request.get(options, function(err, resp, body) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(JSON.parse(body));
+            }
+        })
+    })
+}
+```
+[[source](https://medium.com/@tkssharma/writing-neat-asynchronous-node-js-code-with-promises-async-await-fa8d8b0bcd7c)]
+
+
+### Use async/await and promises
+
+Add some helper functions
+```
+throwError = (code, errorType, errorMessage) => error => {
+  if (!error) error = new Error(errorMessage || 'Default Error')
+  error.code = code
+  error.errorType = errorType
+  throw error
+}
+throwIf = (fn, code, errorType, errorMessage) => result => {
+  if (fn(result)) {
+    return throwError(code, errorType, errorMessage)()
+  }
+  return result
+}
+sendSuccess = (res, message) => data => {
+  res.status(200).json({type: 'success', message, data})
+}
+sendError = (res, status, message) => error => {
+  res.status(status || error.status).json({
+    type: 'error', 
+    message: message || error.message, 
+    error
+  })
+}
+// handle both Not Found and Error cases in one command
+const user = await User
+  .findOne({where: {login: req.body.login}})
+  .then(
+    throwIf(r => !r, 400, 'not found', 'User Not Found'),
+    throwError(500, 'sequelize error')
+  )
+//<-- After that we can use `user` variable, it's not empty
+```
+[[source](https://codeburst.io/node-express-async-code-and-error-handling-121b1f0e44ba)]
+
+
+
+### CI Choices
+
+These were notes from the previous Azure hello world app where linting and testing was added and deployed to an App Services container.  Obviously we went with the DevOps pipeline, but this discussion is still relevant.
+
+A pipeline that includes linting, testing and deployments is a standard feature of the modern DevOps experience.  Our basic choices are:
+* Heroku CI Pipeline
+* Jenkins - complex setup 
+* CircleCI - flexible CI pipeline without the burden of managing the whole infrastructure
+* Azure DevOps Pipeline - Makes sense for an Azure deployment, but is it free?
+
+I've used Jenkins before, so I'd like to find out more about CircleCI.
+*Each project repository has its own build pipeline and generates a Docker image which is pushed to a Docker registry. Finally, it does a commit to the Helm Chart repo in the initial, Staging branch. Separating the Deployment pipeline from the individual projects is a foundational element of larger scale microservice architectures. It provides a clear view and history of a logical part of the application stack, archived in version control.*
+
+After a quick setup with the GitHub repo, and adding a yaml file then pushing to master and starting a build, [a green bar](https://circleci.com/gh/timofeysie) appeared showing success.  But what did it do?  Did the lint and the tests run?  How do we add an Azure deployment now?
+
+Maybe try making it fail and push that?
+
+But before getting more into CircleCI, I'd still like to know about the [Azure Pipelines](https://docs.microsoft.com/en-us/azure/devops/pipelines/apps/cd/deploy-docker-webapp?view=azdevops).  That link shows how to deploy a Docker-enabled app to an Azure Web App using Azure Pipelines for CI.  Their sample project is for .NET, so it's not for us.  For this we need a CI build pipeline that publishes a Docker container image. 
+
+When reading the [Azure Pipeline docs](https://github.com/MicrosoftDocs/pipelines-javascript) I saw the link to a deo repo with a Node server implemented with the Express.js, tests for the app (in Mocha) which includes an azure-pipelines.yml file that can be used to build the app.
+
+Now you're talking.  After doing all that we can get back to the CI part in [these docs](https://docs.microsoft.com/en-us/azure/devops/pipelines/apps/cd/deploy-docker-webapp?view=azdevops).
+
+Cloning into [the repo](https://github.com/MicrosoftDocs/pipelines-javascript) in a separate directory now.
+
+
+### Testing
+
+Test should run when a developer saves or commits a file, full end-to-end tests usually run when a new pull request is submitted
+
+Tagging tests with keywords like #cold #api #sanity so you can grep with your testing harness and invoke the desired subset. For example, this is how you would invoke only the sanity test group with Mocha: mocha --grep 'sanity'
+
+Implementing Jest with a first demo run produces this result:
+```
+$ npm run test
+> app-service-hello-world@0.0.1 test /Users/tim/node/azure/nodejs-docs-hello-world-master
+> jest src
+ PASS  src/demo/sum.test.js (26.78s)
+  ✓ adds 1 + 2 to equal 3 (5ms)
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        52.654s
+Ran all test suites matching /src/i.
+```
+
+Jest also comes with coverage which also runs the tests.  That's easier than having to setup Istanbul or NYC or something else.
+```
+$ npm run coverage
+> app-service-hello-world@0.0.1 coverage /Users/tim/node/azure/nodejs-docs-hello-world-master
+> jest --collectCoverageFrom=src/**.js --coverage src
+ PASS  src/demo/sum.test.js (25.862s)
+  ✓ adds 1 + 2 to equal 3 (6ms)
+----------|----------|----------|----------|----------|-------------------|
+File      |  % Stmts | % Branch |  % Funcs |  % Lines | Uncovered Line #s |
+----------|----------|----------|----------|----------|-------------------|
+All files |        0 |        0 |        0 |        0 |                   |
+----------|----------|----------|----------|----------|-------------------|
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        65.804s
+Ran all test suites matching /src/i.
+```
+
+How is it faster to run coverage with tests than just tests alone?  Anyhow, why is there zero coverage?
+
+
+### Code coverage tools 
+
+Like 
+```
+Istanbul
+NYC
+Corbertura
+```
+The initial project used Jest for testing which comes with its own coverage tools.  That seems like all we need.  If we can set up Jest again and ditch Mocha without breaking the build, will try that again.  
+If we can use
+
+### Static analysis 
+
+Tools for the CI build should fail when it finds code smells. 
+For example, detect duplications, perform advanced analysis (e.g. code complexity) and follow the history and progress of code issues. 
+
+Options:
+```
+Sonarqube (2,600+ stars)
+Code Climate (1,500+ stars)
+```
+
+
+### Delegate anything possible (e.g. static content, gzip) to a reverse proxy
+
+Options:
+* nginx
+* HAproxy 
+* S3
+* CDN
+
+*It’s very tempting to cargo-cult Express and use its rich middleware offering for networking related tasks like serving static files, gzip encoding, throttling requests, SSL termination, etc. This is a performance kill due to its single threaded model which will keep the CPU busy for long periods (Remember, Node’s execution model is optimized for short tasks or async IO related tasks). A better approach is to use a tool that expertise in networking tasks – the most popular are nginx and HAproxy.*
+
+*Attempting to have Node deal with all of the complicated things that a proven web server does really well is a bad idea.  This is just for one request, for one image and bearing in mind this is the memory that the application could be used for important stuff.*
+
+This connects with *5.11. Get your frontend assets out of Node*
+
+Serve frontend content using dedicated middleware.
+
+Limit the body size of incoming requests on the edge (e.g. firewall, ELB) or by configuring express body parser to accept only small-size payloads
+
+
+### Be stateless, kill your Servers almost every day
+
+This is part 5.12..  It's what AWS Lambda enforces, right?
+
+
+### Create a ‘maintenance endpoint’
+
+Expose a set of system-related information, like memory usage and REPL, etc in a secured API. 
+
+
+### Embrace linter security rules
+
+use of security-related linter plugins such as eslint-plugin-security
+
+
 
 
 ## Getting started
@@ -291,40 +723,6 @@ After it's all done, we can check http://strumosa.azurewebsites.net to see if it
 And it does.  We now see the server responding with a new response.  One push to master now starts the pipeline which ends in a deployment to master.  We can always use the old strumosa project for other best practices work.  Since it's set up with Airbnb linting and Jest testing and coverage, it's a good place to go to try things out.
 
 Time to create a development branch to do work and test locally and then only push to master when that is all working.
-
-## Best practices
-
-More notes from the [best practices for NodeJS](https://github.com/i0natan/nodebestpractices#4-testing-and-overall-quality-practices)
-
-### Delegate anything possible (e.g. static content, gzip) to a reverse proxy
-
-Options:
-* nginx
-* HAproxy 
-* S3
-* CDN
-
-*It’s very tempting to cargo-cult Express and use its rich middleware offering for networking related tasks like serving static files, gzip encoding, throttling requests, SSL termination, etc. This is a performance kill due to its single threaded model which will keep the CPU busy for long periods (Remember, Node’s execution model is optimized for short tasks or async IO related tasks). A better approach is to use a tool that expertise in networking tasks – the most popular are nginx and HAproxy.*
-
-*Attempting to have Node deal with all of the complicated things that a proven web server does really well is a bad idea.  This is just for one request, for one image and bearing in mind this is the memory that the application could be used for important stuff.*
-
-This connects with *5.11. Get your frontend assets out of Node*
-
-Serve frontend content using dedicated middleware.
-
-Limit the body size of incoming requests on the edge (e.g. firewall, ELB) or by configuring express body parser to accept only small-size payloads
-
-### 5.12. Be stateless, kill your Servers almost every day
-
-This is what AWS Lambda enforces, right?
-
-### Create a ‘maintenance endpoint’
-
-Expose a set of system-related information, like memory usage and REPL, etc in a secured API. 
-
-### Embrace linter security rules
-
-use of security-related linter plugins such as eslint-plugin-security
 
 
 ## Links
