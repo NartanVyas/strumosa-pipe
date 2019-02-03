@@ -21,11 +21,6 @@ steps:
 #     TargetFolder: '$(Build.ArtifactStagingDirectory)'
 
 - task: Npm@1
-  displayName: 'eslint'
-  inputs:
-    command: eslint server.js \"./app/**/*.js\"
-
-- task: Npm@1
   displayName: 'npm test'
   inputs:
     command: custom
