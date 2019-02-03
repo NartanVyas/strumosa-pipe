@@ -441,7 +441,34 @@ Obviously we only want our src to be linted.  We do have an app directory, but h
 ✖ 3 problems (0 errors, 3 warnings)
 ```
 
+
 Works on the first try.  Lucky guess.
+
+When we do our next push to master, we get the following on our eslint task:
+```
+Unknown command: eslint server.js \"./app/**/*.js\"
+```
+
+Our task is a little simplistic and nieve:
+```
+- task: Npm@1
+  displayName: 'eslint'
+  inputs:
+    command: eslint server.js \"./app/**/*.js\"
+```
+
+That's pretty much what the npm install task looks like.  But since there are paths involved, maybe the copy files is the best one to base the linting task on:
+```
+- task: CopyFiles@2
+  inputs:
+    command: eslint
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
+    Contents: |
+      **\*.js
+      server
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+```
+
 
 
 #
