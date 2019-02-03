@@ -22,14 +22,11 @@ app.get('/add', (req, res) => {
 
 app.get('/user', (req, res) => {
   const { name } = req.query;
-  console.log('name',name);
-  compact.run(name, req).then((result) => {
-    console.log('result', result);
-    res.status(200).send(result.toString());
+  compact.run(name).then((result) => {
+    res.status(200).send(result);
   }).catch((error) => {
-      console.log('error',error);
-      res.status(400).send(error.toString());
-  })
+    res.status(400).send(error);
+  });
 });
 
 const port = process.env.PORT || PORT;

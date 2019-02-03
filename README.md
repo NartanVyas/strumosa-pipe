@@ -7,6 +7,7 @@ A NodeJS application with an Azure DevOps Pipeline
 # Table of Contents
 
 1. [API Testing](#api-testing)
+1. [Error handling best practices](#error-handling-best-practices)
 1. [Getting started](#getting-started)
 1. [Best practices](#best-practices)
 1. [Links](#links)
@@ -213,7 +214,15 @@ Actually, I don't get it.  The line is:
     request.get(options, (err, resp, body) => {
 ```
 
-They have abbreviated request for us.
+They have abbreviated request for us.  The problem turned out to be the request we were treating like the Express app.  Since we're making a new request to GitHub, we needed our own API call and used the request package that is used in the unit tests.
+
+This works, but we get the error:
+```
+  1:17  error  'request' should be listed in the project's dependencies, not devDependencies  import/no-extraneous-dependencies
+```
+
+This strict liniting is great!  Might not have caught that otherwise.  Or should we be importing and creating another Express app to make the call from?
+
 
 
 
@@ -449,7 +458,7 @@ When we do our next push to master, we get the following on our eslint task:
 Unknown command: eslint server.js \"./app/**/*.js\"
 ```
 
-Our task is a little simplistic and nieve:
+Our task is a little simplistic and naive:
 ```
 - task: Npm@1
   displayName: 'eslint'
