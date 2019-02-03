@@ -463,12 +463,16 @@ That's pretty much what the npm install task looks like.  But since there are pa
   inputs:
     command: eslint
     SourceFolder: '$(System.DefaultWorkingDirectory)'
-    Contents: |
-      **\*.js
-      server
+    Contents:  **\*.js
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
 ```
 
+This time, the build failed on the first task:
+```
+/azure-pipelines.yml: (Line: 20, Col: 15, Idx: 422) - (Line: 20, Col: 16, Idx: 423): While scanning an anchor or alias, did not find expected alphabetic or numeric character.
+```
+
+Have to actually read the docs instead of just guessing.  Also, I'm not sure if it's even a good idea to lint in a pipeline like this.  Especially with the --fix flag.  Is it really going to write back to the js files if there is an issue it can fix?  It seems like linting might be only appropriate as a developer workflow.  Have to find our what others do.
 
 
 #

@@ -13,12 +13,12 @@ steps:
   inputs:
     command: install
 
-- task: CopyFiles@2
-  inputs:
-    command: eslint
-    SourceFolder: '$(System.DefaultWorkingDirectory)'
-    Contents: **\*.js
-    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+# - task: CopyFiles@2
+#   inputs:
+#     command: eslint
+#     SourceFolder: '$(System.DefaultWorkingDirectory)'
+#     Contents: **\*.js
+#     TargetFolder: '$(Build.ArtifactStagingDirectory)'
 
 - task: Npm@1
   displayName: 'eslint'
