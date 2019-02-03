@@ -122,6 +122,140 @@ Also, the console log outputs always get printed in a slightly different order. 
 
 
 
+
+
+### Error handling best practices
+
+Async-await instead enables a much more compact code syntax like try-catch.
+```
+var userDetails;
+function initialize() {
+    // Setting URL and headers for request
+    var options = {
+        url: 'https://api.github.com/users/narenaryan',
+        headers: {
+            'User-Agent': 'request'
+        }
+    };
+    // Return new promise 
+    return new Promise(function(resolve, reject) {
+     // Do async job
+        request.get(options, function(err, resp, body) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(JSON.parse(body));
+            }
+        })
+    })
+}
+```
+[[source](https://medium.com/@tkssharma/writing-neat-asynchronous-node-js-code-with-promises-async-await-fa8d8b0bcd7c)]
+
+Trying to implement a compact server endpoint and properly layered error handling results in our first linting issue.  This line:
+```
+  const user = req.query.user;
+```
+
+Results in this linting error:
+```
+ 24:9   error    Use object destructuring         prefer-destructuring
+```
+
+For those that don't know, destructuring is a convenient way of extracting multiple values from data stored in objects and Arrays. It can be used in locations that receive data (such as the left-hand side of an assignment).
+
+The example from [10.1.1 Object destructuring](http://exploringjs.com/es6/ch_destructuring.html)
+```
+const obj = { first: 'Jane', last: 'Doe' };
+const {first: f, last: l} = obj;
+    // f = 'Jane'; l = 'Doe'
+// {prop} is short for {prop: prop}
+const {first, last} = obj;
+    // first = 'Jane'; last = 'Doe'
+```
+
+Destructuring helps with processing return values:
+```
+const obj = { foo: 123 };
+const {writable, configurable} =
+    Object.getOwnPropertyDescriptor(obj, 'foo');
+console.log(writable, configurable); // true true
+```
+
+I've done destructuring with arrays, which is a little more obvious.  Without thinking too much, this seems the way to go:
+```
+  const { user } = req;
+```
+
+This makes the linter happy.  Lets see how the test runs.
+
+```
+(node:37771) UnhandledPromiseRejectionWarning: Unhandled promise rejection (rejection id: 4): TypeError: name must be a string to req.get
+```
+
+That's great.  We need this:
+```
+const { name } = req.query;
+compact.run(name, req).then((result) => {
+    ...
+}).catch((error) => { 
+    ...
+})
+```
+
+Actually, that error was not from our tests, which are all passing (when they shouldn't be), it's from the server.  Anyhow, the desctructured name above works fine.  After catching the error, we have:
+```
+error TypeError: name must be a string to req.get
+```
+
+Actually, I don't get it.  The line is:
+```
+    request.get(options, (err, resp, body) => {
+```
+
+They have abbreviated request for us.
+
+
+
+### Use async/await and promises
+
+Add some helper functions
+```
+throwError = (code, errorType, errorMessage) => error => {
+  if (!error) error = new Error(errorMessage || 'Default Error')
+  error.code = code
+  error.errorType = errorType
+  throw error
+}
+throwIf = (fn, code, errorType, errorMessage) => result => {
+  if (fn(result)) {
+    return throwError(code, errorType, errorMessage)()
+  }
+  return result
+}
+sendSuccess = (res, message) => data => {
+  res.status(200).json({type: 'success', message, data})
+}
+sendError = (res, status, message) => error => {
+  res.status(status || error.status).json({
+    type: 'error', 
+    message: message || error.message, 
+    error
+  })
+}
+// handle both Not Found and Error cases in one command
+const user = await User
+  .findOne({where: {login: req.body.login}})
+  .then(
+    throwIf(r => !r, 400, 'not found', 'User Not Found'),
+    throwError(500, 'sequelize error')
+  )
+//<-- After that we can use `user` variable, it's not empty
+```
+[[source](https://codeburst.io/node-express-async-code-and-error-handling-121b1f0e44ba)]
+
+
+
 #
 ## Linting
 
@@ -354,75 +488,6 @@ keys can be read from file and from environment variable.
 secrets are kept outside committed code
 config is hierarchical for easier findability. 
 (example packages: rc, nconf and config)
-
-
-
-### Async error handling
-Async-await instead enables a much more compact code syntax like try-catch.
-
-```
-var userDetails;
-function initialize() {
-    // Setting URL and headers for request
-    var options = {
-        url: 'https://api.github.com/users/narenaryan',
-        headers: {
-            'User-Agent': 'request'
-        }
-    };
-    // Return new promise 
-    return new Promise(function(resolve, reject) {
-     // Do async job
-        request.get(options, function(err, resp, body) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(JSON.parse(body));
-            }
-        })
-    })
-}
-```
-[[source](https://medium.com/@tkssharma/writing-neat-asynchronous-node-js-code-with-promises-async-await-fa8d8b0bcd7c)]
-
-
-### Use async/await and promises
-
-Add some helper functions
-```
-throwError = (code, errorType, errorMessage) => error => {
-  if (!error) error = new Error(errorMessage || 'Default Error')
-  error.code = code
-  error.errorType = errorType
-  throw error
-}
-throwIf = (fn, code, errorType, errorMessage) => result => {
-  if (fn(result)) {
-    return throwError(code, errorType, errorMessage)()
-  }
-  return result
-}
-sendSuccess = (res, message) => data => {
-  res.status(200).json({type: 'success', message, data})
-}
-sendError = (res, status, message) => error => {
-  res.status(status || error.status).json({
-    type: 'error', 
-    message: message || error.message, 
-    error
-  })
-}
-// handle both Not Found and Error cases in one command
-const user = await User
-  .findOne({where: {login: req.body.login}})
-  .then(
-    throwIf(r => !r, 400, 'not found', 'User Not Found'),
-    throwError(500, 'sequelize error')
-  )
-//<-- After that we can use `user` variable, it's not empty
-```
-[[source](https://codeburst.io/node-express-async-code-and-error-handling-121b1f0e44ba)]
-
 
 
 ### CI Choices
