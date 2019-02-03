@@ -489,6 +489,8 @@ Have to actually read the docs instead of just guessing.  Also, I'm not sure if 
 
 In an effort to better define the code in the server app, we're going to be applying the Node best practices described [here](https://github.com/i0natan/nodebestpractices).  Below are some notes to get started with.
 
+Linting, testing, deploying are all well underway and working well.
+
 
 ### Code structure
 
