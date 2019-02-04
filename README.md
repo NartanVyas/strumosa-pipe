@@ -15,6 +15,146 @@ A NodeJS application with an Azure DevOps Pipeline
 1. [Legal Notices](#legal-notices)
 
 
+
+#
+## Static Analysis with Sonarqube
+
+The best practices guide recommended two libraries for static analysis; Sonarqube or Code Climate.  Starting with Sonarqube, the JavaScript version is [SonarJS](https://github.com/SonarSource/SonarJS).
+
+The getting started page says *SonarJS is integrated inside of SonarLint IDE extension. It is available for WebStorm/IntelliJ, Visual Studio, VS Code, Atom and Eclipse.*  You can also use it in the cloud or what seems to be a desktop app.  We went with the cloud option for now.  There was an option for Azure as well.  Not sure why that one wasn't chosen...
+
+Added the following path to the sonar-scanner command:
+```
+Users/tim/node/sonar-scanner-3.3.0.1492-macosx/bin
+```
+
+There is a [sample project](https://github.com/SonarSource/sonar-scanning-examples/blob/master/sonarqube-scanner/src/javascript/Person.js) with JavaScript.  It shows code that smells and reasons.
+
+There is a list of JS code examples with non-compliant code with messages such as; 
+```
+always false
+dead code
+statements that are not necessarily true
+empty strings
+```
+
+This is the command to start the server:
+```
+sonar-scanner \
+  -Dsonar.projectKey=timofeysie_strumosa-pipe \
+  -Dsonar.organization=timofeysie-github \
+  -Dsonar.sources=. \
+  -Dsonar.host.url=https://sonarcloud.io \
+  -Dsonar.login=<key>
+```
+
+The initial run included files that shouldn't be included, such as ```coverage/app/compact.js.html```.
+
+The results of the run can be seen on [a dashboard](https://sonarcloud.io/dashboard?id=timofeysie_strumosa-pipe).
+
+The bad news is: 140 issues - 1d 2h effort
+
+The good news is, that's work for the Istanbul developers who make the app which generates the coverage report.
+
+Just an example, the first one says:
+```
+Remove this deprecated "name" attribute.
+```
+
+That is referring to this line of code:
+```
+<meta name="viewport" content="width=device-width, initial-scale=1">
+```
+
+On the dashboard, we can see that our code is looking pretty good:
+```
+File        Lines of Code	Bugs	Vulnerabilities	Code Smells	Coverage	Duplications	
+app	        21              0       0               0           0.0%        0.0%
+coverage    1,742           1       0               128         0.0%        21.1%
+node_mod... 4,403           7       0               4                       3.2%
+tests	    53              0       0               0           0.0%        72.3%
+gulpfile.js	19              0       0               0           0.0%        0.0%
+server.js	27              0       0               0           0.0%        0.0%
+```
+
+Should we let the Istanbul devs know?  No, lets just move on.  The files to scan are listed in the sonar-project.properties file:
+```
+# Path is relative to the sonar-project.properties file. Replace "\" by "/" on Windows.
+# This property is optional if sonar.modules is set. 
+sonar.sources=.
+```
+
+Replacing the ```.``` with ```server.js,src/*``` seems like the right way to go.  That didn't seem to take effect.  The result of the next run is the same.  Maybe sonar.modules is set?  There is no occurance of that string in the project.
+
+The [docs](https://docs.sonarqube.org/latest/analysis/analysis-parameters/) say:
+```
+Project Configuration
+Key: sonar.sources
+Description: Comma-separated paths to directories containing source files.
+Default: Read from build system for Maven, Gradle, MSBuild projects
+```
+
+After reading [this SO answer](https://stackoverflow.com/questions/21323276/sonarqube-exclude-a-directory), trying a new property:
+```
+sonar.exclusions=node_modules/**, coverage/**,  TEST-RESULTS.xml, gulpfile.js
+```
+
+But at the start of the run, it looks like that is not working:
+```
+INFO: 232 files indexed...  (last one was node_modules/loose-envify/LICENSE)
+INFO: 489 files indexed...  (last one was node_modules/resolve/test/resolver/cup.coffee)
+INFO: 820 files indexed...  (last one was node_modules/read-pkg-up/package.json)
+```
+
+Doh!  The command line we used to start sonar had a flag in it:
+```
+QuinquenniumF:pipelines-javascript tim$ sonar-scanner   -Dsonar.projectKey=timofeysie_strumosa-pipe   -Dsonar.organization=timofeysie-github   -Dsonar.sources=server.js,src ...
+```
+
+That gives us an error though:
+```
+ERROR: Error during SonarQube Scanner execution
+ERROR: The folder 'src' does not exist for 'timofeysie_strumosa-pipe' (base directory = /Users/tim/node/azure/pipelines-javascript)
+```
+
+Trying this and adding the tests directory:
+```
+-Dsonar.sources=./server.js,./src,./test
+```
+
+But again:
+```
+ERROR: Error during SonarQube Scanner execution
+ERROR: The folder './src' does not exist for 'timofeysie_strumosa-pipe' (base directory = /Users/tim/node/azure/pipelines-javascript)
+```
+
+If we ignore that flag and try to get sonar to read the properties file, then we get this error:
+```
+ERROR: Error during SonarQube Scanner execution
+ERROR: You must define the following mandatory properties for 'timofeysie_strumosa-pipe': sonar.sources
+```
+
+So back to the flag, this also fails despite being what is recommended in one of the SO answers linked to above:
+```
+-Dsonar.sources=server.js,src/**,test/**
+```
+
+Trying a new approach:
+```
+-Dsonar.sources=. -Dsonar.exclusions=node_modules/**,coverage/**,TEST-RESULTS.xml,gulpfile.js
+```
+
+Happily saw this in the scrolling output from the command:
+```
+INFO:   Excluded sources: node_modules/**, coverage/**, TEST-RESULTS.xml, gulpfile.js
+...
+INFO: 10 files indexed...  (last one was LICENSE-CODE)
+```
+
+Hooray!  The only issue now is 72.3% code duplication in the tests.  But that has
+describe, describe, it, it, expect, expect lines in it.  Maybe sonar is blind to the way tests work.  Maybe we shouldn't be analyzing the test directory.  Another question to bring with the GitHub best practices project.
+
+
 #
 ## API Testing
 
@@ -489,7 +629,26 @@ Have to actually read the docs instead of just guessing.  Also, I'm not sure if 
 
 In an effort to better define the code in the server app, we're going to be applying the Node best practices described [here](https://github.com/i0natan/nodebestpractices).  Below are some notes to get started with.
 
-Linting, testing, deploying are all well underway and working well.
+Linting, testing, coverage, deploying are all well underway and working well.
+
+Still to be done, separate Express definitions to at least two files: 
+1. the API declaration (app.js) 
+2. the networking concerns (WWW). 
+
+Locate API declarations within components.
+
+Test should run when a developer saves or commits a file, full end-to-end tests usually run when a new pull request is submitted
+
+Tagging tests with keywords like #cold #api #sanity so you can grep with your testing harness and invoke the desired subset. For example, this is how you would invoke only the sanity test group with Mocha: mocha --grep 'sanity'
+
+Static analysis with Sonarqube or Code Climate.
+
+Delegate anything possible (e.g. static content, gzip) to a reverse proxy.  Options are nginx, HAproxy, S3, CDN.
+
+Create a ‘maintenance endpoint’ for system-related information, like memory usage and REPL, etc in a secured API. 
+
+Use of security-related linter plugins such as eslint-plugin-security
+
 
 
 ### Code structure
@@ -563,6 +722,8 @@ Cloning into [the repo](https://github.com/MicrosoftDocs/pipelines-javascript) i
 Test should run when a developer saves or commits a file, full end-to-end tests usually run when a new pull request is submitted
 
 Tagging tests with keywords like #cold #api #sanity so you can grep with your testing harness and invoke the desired subset. For example, this is how you would invoke only the sanity test group with Mocha: mocha --grep 'sanity'
+
+For the Azure web app before setting up the pipe we used Jest.  After implementing the pipeline which came with a project setup using Mocha, that became the unit testing framework which can be seen in the app right now.
 
 Implementing Jest with a first demo run produces this result:
 ```

@@ -4,7 +4,7 @@ const compact = require('../app/compact');
 const request = require('request');
 
 describe('Compact', () => {
-  describe('user', () => {
+  describe('user API call', () => {
     const url = 'http://localhost:3000/user?name=timofeysie';
 
     it('returns status 200', () => {
@@ -15,7 +15,7 @@ describe('Compact', () => {
       });
     });
 
-    it('returns status 200', () => {
+    it('Returns a user profile from GitHub', () => {
         request(url, (error, response, body) => {
             console.log('body', body);
             expect(body).to.equal('what?');

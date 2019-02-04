@@ -1,0 +1,7 @@
+organization=timofeysie-github
+projectKey=timofeysie_strumosa-pipe
+serverUrl=https://sonarcloud.io
+serverVersion=7.7.0.21605
+dashboardUrl=https://sonarcloud.io/dashboard?id=timofeysie_strumosa-pipe
+ceTaskId=AWi6L84O2N1QTKZRZhWT
+ceTaskUrl=https://sonarcloud.io/api/ce/task?id=AWi6L84O2N1QTKZRZhWT
