@@ -2,14 +2,24 @@
 
 [![Build Status](https://dev.azure.com/timofeyc/strumosa-pipe/_apis/build/status/timofeysie.strumosa-pipe?branchName=master)](https://dev.azure.com/timofeyc/strumosa-pipe/_build/latest?definitionId=1?branchName=master)
 
-A NodeJS application with an Azure DevOps Pipeline
+This project NodeJS application with an Azure DevOps Pipeline.  It implements many of the NodeJS best practices on the [this popular list](https://github.com/i0natan/nodebestpractices) from i0natan GitHub repo.
+
+So far there is linting with the super strict AirBnb stylesheet, testing with Mocha, coverage with Istanbul, and static analysis with Sonarqube.
+
+There is still a lot to be done.  A partial list includes:
+* separate Express API definitions from other networking concerns. 
+* Tagging tests with keywords like #cold #api #sanity so you can grep with the testing harness and invoke the desired subset.
+* Use nginx, HAproxy, S3, or a CDN to serve apps.
+* Create a ‘maintenance endpoint’ for system-related information.
+* Use a security-related linter plugins such as eslint-plugin-security.
+
 
 # Table of Contents
 
 1. [API Testing](#api-testing)
 1. [Error handling best practices](#error-handling-best-practices)
 1. [Getting started](#getting-started)
-1. [Best practices](#best-practices)
+1. [Node Best practices](#node-best-practices)
 1. [Links](#links)
 1. [Contributing](#contributing)
 1. [Legal Notices](#legal-notices)
@@ -691,6 +701,42 @@ config is hierarchical for easier findability.
 (example packages: rc, nconf and config)
 
 
+### 1.2 Layer your components, keep Express within its boundaries
+*Each component should contain 'layers' - a dedicated object for the web, logic and data access code. This not only draws a clean separation of concerns but also significantly eases mocking and testing the system. Though this is a very common pattern, API developers tend to mix layers by passing the web layer objects (Express req, res) to business logic and data layers - this makes your application dependant on and accessible by Express only Otherwise: App that mixes web objects with other layers can not be accessed by testing code, CRON jobs and other non-Express callers.*
+
+Don’t: API passes ‘Express’ object such as request to DAL & logic layers.  The entire system becomes dependant on an accessible only by Express.  Ap-p is not testable.  All app functions accept a req object.
+```
+var express = require('Express'),
+    util = require ('util'),
+    router = express.Router(), 
+    usersDBAccess = require('./usersDAL');
+router.get('/', (req, res, next) => {
+    usersDBAccess.getByID(req);
+});
+module.exports = router; 
+```
+
+Do: Create and pass a custom context object.  Testable and accessible by all.  Keep Express in the web layer only.
+```
+var express = require('Express'),
+    util = require ('util'),
+    router = express.Router(), 
+    usersService = require('./usersService'), 
+    usersDBAccess = require('./usersDAL'),
+    logger = require('logger'); 
+router.get('/', (req, res, next) => {
+    const contextObject = {
+        user: req.user, 
+            transactionId: UUID.new(), 
+            otherProperties: 'some other properties' 
+    };
+    new DAL(contextObject); 
+    usersDBAccess.getByID(1);
+});
+module.exports = router; 
+```
+
+
 ### CI Choices
 
 These were notes from the previous Azure hello world app where linting and testing was added and deployed to an App Services container.  Obviously we went with the DevOps pipeline, but this discussion is still relevant.
@@ -792,7 +838,7 @@ Options:
 * S3
 * CDN
 
-*It’s very tempting to cargo-cult Express and use its rich middleware offering for networking related tasks like serving static files, gzip encoding, throttling requests, SSL termination, etc. This is a performance kill due to its single threaded model which will keep the CPU busy for long periods (Remember, Node’s execution model is optimized for short tasks or async IO related tasks). A better approach is to use a tool that expertise in networking tasks – the most popular are nginx and HAproxy.*
+*It’s very tempting to cargo-cult Express and use its rich middleware offering for networking related tasks like serving static files, gzip encoding, throttling requests, SSL termination, etc. This is a performance kill due to its single threaded model which will keep the CPU busy for long periods (Remember, Node’s execution model is optimized for short tasks or async IO related tasks). A better approach is to use a tool that has expertise in networking tasks – the most popular are nginx and HAproxy.*
 
 *Attempting to have Node deal with all of the complicated things that a proven web server does really well is a bad idea.  This is just for one request, for one image and bearing in mind this is the memory that the application could be used for important stuff.*
 
@@ -817,7 +863,27 @@ Expose a set of system-related information, like memory usage and REPL, etc in a
 
 use of security-related linter plugins such as eslint-plugin-security
 
+## Errata
 
+An [example](https://github.com/i0natan/nodejs-course/blob/master/examples/express/express-basic-middleware/end.js) from the author of the best practices guide.
+```
+// upstream middleware: before API endpoint
+app.use((req, res, next) => {
+  ...
+  next();
+});
+// API endpoint: is a special kind of middleware
+router.post("/api/products", (req, res, next) => {
+  ...
+  next();
+});
+app.use(router);
+// downstream middleware: after API endpoint
+app.use((req, res, next) => {
+  ...
+  next();
+});
+```
 
 
 ## Getting started
