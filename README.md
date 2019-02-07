@@ -2,14 +2,12 @@
 
 [![Build Status](https://dev.azure.com/timofeyc/strumosa-pipe/_apis/build/status/timofeysie.strumosa-pipe?branchName=master)](https://dev.azure.com/timofeyc/strumosa-pipe/_build/latest?definitionId=1?branchName=master)
 
-This project NodeJS application with an Azure DevOps Pipeline.  It implements many of the NodeJS best practices on the [this popular list](https://github.com/i0natan/nodebestpractices) from theni0natan GitHub repo.
+This project NodeJS application with an Azure DevOps Pipeline.  It implements many of the NodeJS best practices on the [this popular list](https://github.com/i0natan/nodebestpractices) from the ni0natan GitHub repo.
 
 
-```
-[The app is live at this location](http://strumosa.azurewebsites.net/)
-[The Azure DevOps pipeline dashboard](https://dev.azure.com/timofeyc/strumosa-pipe/_build?definitionId=1)
-[SonarCloud static analysis dashboard](https://sonarcloud.io/dashboard?id=timofeysie_strumosa-pipe)
-```
+* [The app is live at this location](http://strumosa.azurewebsites.net/)
+* [The Azure DevOps pipeline dashboard](https://dev.azure.com/timofeyc/strumosa-pipe/_build?definitionId=1)
+* [SonarCloud static analysis dashboard](https://sonarcloud.io/dashboard?id=timofeysie_strumosa-pipe)
 
 So far there is linting with the super strict AirBnb stylesheet, testing with Mocha, coverage with Istanbul, and static analysis with Sonarqube.
 
