@@ -1,6 +1,6 @@
 const express = require('express');
 const apis = require('./app/index');
-console.log('app',apis)
+console.log('APIs',apis)
 
 // Constants
 const PORT = 3000;
@@ -22,7 +22,17 @@ app.get('/add', (req, res) => {
 
 app.get('/user', (req, res) => {
   const { name } = req.query;
+  console.log('name',name);
   apis.user.run(name).then((result) => {
+    res.status(200).send(result);
+  }).catch((error) => {
+    res.status(400).send(error);
+  });
+});
+
+app.get('/marvel', (req, res) => {
+  const { name } = req.query;
+  apis.marvel.run(name).then((result) => {
     res.status(200).send(result);
   }).catch((error) => {
     res.status(400).send(error);

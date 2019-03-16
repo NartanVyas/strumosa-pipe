@@ -12,7 +12,7 @@ This project NodeJS application with an Azure DevOps Pipeline.  It implements ma
 So far there is linting with the super strict AirBnb stylesheet, testing with Mocha, coverage with Istanbul, and static analysis with Sonarqube.
 
 There is still a lot to be done.  A partial list includes:
-* separate Express API definitions from other networking concerns. 
+* separate Express API definitions from other networking concerns.
 * Tagging tests with keywords like #cold #api #sanity so you can grep with the testing harness and invoke the desired subset.
 * Use nginx, HAproxy, S3, or a CDN to serve apps.
 * Create a ‘maintenance endpoint’ for system-related information.
@@ -21,6 +21,8 @@ There is still a lot to be done.  A partial list includes:
 
 # Table of Contents
 
+1. [The Marvel API](#the-marvel-api)
+1. [Static Analysis with Sonarqube](#static-Analysis-with-Sonarqube)
 1. [API Testing](#api-testing)
 1. [Error handling best practices](#error-handling-best-practices)
 1. [Getting started](#getting-started)
@@ -28,6 +30,118 @@ There is still a lot to be done.  A partial list includes:
 1. [Links](#links)
 1. [Contributing](#contributing)
 1. [Legal Notices](#legal-notices)
+
+
+
+#
+## The Marvel API
+
+The requirements requested to use the Marvel API to get data and send it to a client.
+Also, we need to use an in-memory cache to speed up repeated calls.
+Furthermore, since we deploy the app to Azure, we will need to store the private API key.
+
+The *Marvel Authentication for Server-Side Applications* [docs](https://developer.marvel.com/documentation/authorization) state that *Server-side applications must pass two parameters in addition to the apikey parameter*
+```
+ts - a timestamp (or other long string which can change on a request-by-request basis)
+hash - a md5 digest of the ts parameter, your private key and your public key (e.g. md5(ts+privateKey+publicKey)
+```
+
+That was pretty easy to accomplish.
+```
+exports.run = (name) => {
+  const ts = new Date().getTime();
+  const ts_private_public = ts + private_key + public_key;
+  const hash = crypto.createHash('md5').update(ts_private_public).digest('hex');
+  const testAPI = endpoint+`/v1/public/characters?apikey=${public_key}&ts=${ts}&hash=${hash}`;
+  ...
+```
+
+The result for the characters API looks like this:
+```
+{  
+   "code":200,
+   "status":"Ok",
+   "copyright":"© 2019 MARVEL",
+   "attributionText":"Data provided by Marvel. © 2019 MARVEL",
+   "attributionHTML":"<a href=\"http://marvel.com\">Data provided by Marvel. © 2019 MARVEL</a>",
+   "etag":"0f611bfd97cfedf8073cfbaee6270d8d520f509a",
+   "data":{  
+      "offset":0,
+      "limit":20,
+      "total":1491,
+      "count":20,
+      "results":[  
+         {  
+            "id":1011334,
+            "name":"3-D Man",
+            "description":"",
+            "modified":"2014-04-29T14:18:17-0400",
+            "thumbnail":{  
+               "path":"http://i.annihil.us/u/prod/marvel/i/mg/c/e0/535fecbbb9784",
+               "extension":"jpg"
+            },
+            "resourceURI":"http://gateway.marvel.com/v1/public/characters/1011334",
+            "comics":{  
+               "available":12,
+               "collectionURI":"http://gateway.marvel.com/v1/public/characters/1011334/comics",
+               "items":[  
+                  {  
+                     "resourceURI":"http://gateway.marvel.com/v1/public/comics/21366",
+                     "name":"Avengers: The Initiative (2007) #14"
+                  },
+                  ...
+               ],
+               "returned":12
+            },
+            "series":{  
+               "available":3,
+               "collectionURI":"http://gateway.marvel.com/v1/public/characters/1011334/series",
+               "items":[  
+                  {  
+                     "resourceURI":"http://gateway.marvel.com/v1/public/series/1945",
+                     "name":"Avengers: The Initiative (2007 - 2010)"
+                  },
+                  ...
+               ],
+               "returned":3
+            },
+            "stories":{  
+               "available":21,
+               "collectionURI":"http://gateway.marvel.com/v1/public/characters/1011334/stories",
+               "items":[  
+                  {  
+                     "resourceURI":"http://gateway.marvel.com/v1/public/stories/19947",
+                     "name":"Cover #19947",
+                     "type":"cover"
+                  },
+                ...
+               ],
+               "returned":20
+            },
+            "events":{  
+               "available":1,
+               "collectionURI":"http://gateway.marvel.com/v1/public/characters/1011334/events",
+               "items":[  
+                  {  
+                     "resourceURI":"http://gateway.marvel.com/v1/public/events/269",
+                     "name":"Secret Invasion"
+                  }
+               ],
+               "returned":1
+            },
+            "urls":[  
+               {  
+                  "type":"detail",
+                  "url":"http://marvel.com/comics/characters/1011..."
+               },
+               ...
+            ]
+         },
+```
+
+We could collect the character names, ids and create the thumbnail links and send only these to the app.
+Or just forward the whole thing and let the app decide what to show.  Since this is just an exercise, let's go with the latter.
+
 
 
 
@@ -45,7 +159,7 @@ Users/tim/node/sonar-scanner-3.3.0.1492-macosx/bin
 
 There is a [sample project](https://github.com/SonarSource/sonar-scanning-examples/blob/master/sonarqube-scanner/src/javascript/Person.js) with JavaScript.  It shows code that smells and reasons.
 
-There is a list of JS code examples with non-compliant code with messages such as; 
+There is a list of JS code examples with non-compliant code with messages such as;
 ```
 always false
 dead code
@@ -83,7 +197,7 @@ That is referring to this line of code:
 
 On the dashboard, we can see that our code is looking pretty good:
 ```
-File        Lines of Code	Bugs	Vulnerabilities	Code Smells	Coverage	Duplications	
+File        Lines of Code	Bugs	Vulnerabilities	Code Smells	Coverage	Duplications
 app	        21              0       0               0           0.0%        0.0%
 coverage    1,742           1       0               128         0.0%        21.1%
 node_mod... 4,403           7       0               4                       3.2%
@@ -95,7 +209,7 @@ server.js	27              0       0               0           0.0%        0.0%
 Should we let the Istanbul devs know?  No, lets just move on.  The files to scan are listed in the sonar-project.properties file:
 ```
 # Path is relative to the sonar-project.properties file. Replace "\" by "/" on Windows.
-# This property is optional if sonar.modules is set. 
+# This property is optional if sonar.modules is set.
 sonar.sources=.
 ```
 
@@ -223,7 +337,7 @@ So what does error 2 mean?
 2019-01-28T12:07:09.9713067Z Downloading: https://nodejs.org/dist/v8.15.0/node-v8.15.0-linux-x64.tar.gz
 2019-01-28T12:10:18.7837033Z Extracting archive
 2019-01-28T12:10:18.7875172Z [command]/bin/tar xzC /home/vsts/work/_temp/a404ed76-2fd4-4483-a23d-6805c88cee26 -f /home/vsts/work/_temp/fe15c40a-f267-4d85-8071-ecc6b1939196
-2019-01-28T12:10:19.4165117Z 
+2019-01-28T12:10:19.4165117Z
 2019-01-28T12:10:20.2088486Z gzip: stdin: unexpected end of file
 2019-01-28T12:10:20.2088985Z /bin/tar: Unexpected EOF in archive
 2019-01-28T12:10:20.2089125Z /bin/tar: Unexpected EOF in archive
@@ -241,9 +355,9 @@ This might be because we are using a starter app that relies partly on the repor
 Will put the coverage back in and try again.  Made a spelling mistake in the commit message.  I hate that.  Should add a spell checker to the pipeline.
 
 Anyhow, after putting back the nyc reporting and corbertura coverage, etc, the NodeTool doesn't fail:
-nyc --reporter=cobertura 
-    --reporter=html ./node_modules/.bin/mocha tests/**/*.js 
-    --reporter mocha-junit-reporter 
+nyc --reporter=cobertura
+    --reporter=html ./node_modules/.bin/mocha tests/**/*.js
+    --reporter mocha-junit-reporter
     --reporter-options mochaFile=./TEST-RESULTS.xml"
 }
 
@@ -253,20 +367,20 @@ Our API works.  Now to get the tests to be real.  The successful test report fro
 2019-01-28T12:29:10.6265624Z metrics-registry = "https://registry.npmjs.org/"
 2019-01-28T12:29:10.6265760Z scope = ""
 2019-01-28T12:29:10.6266022Z user-agent = "npm/6.4.1 node/v8.15.0 linux x64"
-2019-01-28T12:29:10.6266141Z 
+2019-01-28T12:29:10.6266141Z
 2019-01-28T12:29:10.6266211Z ; environment configs
 2019-01-28T12:29:10.6266367Z userconfig = "/home/vsts/work/1/npm/5.npmrc"
-2019-01-28T12:29:10.6266421Z 
+2019-01-28T12:29:10.6266421Z
 2019-01-28T12:29:10.6266566Z ; node bin location = /opt/hostedtoolcache/node/8.15.0/x64/bin/node
 2019-01-28T12:29:10.6266657Z ; cwd = /home/vsts/work/1/s
 2019-01-28T12:29:10.6266775Z ; HOME = /home/vsts
 2019-01-28T12:29:10.6267498Z ; "npm config ls -l" to show all defaults.
-2019-01-28T12:29:10.6267630Z 
+2019-01-28T12:29:10.6267630Z
 2019-01-28T12:29:10.6267931Z [command]/opt/hostedtoolcache/node/8.15.0/x64/bin/npm test
-2019-01-28T12:29:12.1304220Z 
+2019-01-28T12:29:12.1304220Z
 2019-01-28T12:29:12.1305119Z > HelloWorld@0.0.0 test /home/vsts/work/1/s
 2019-01-28T12:29:12.1306212Z > nyc --reporter=cobertura --reporter=html ./node_modules/.bin/mocha tests/**/*.js --reporter mocha-junit-reporter --reporter-options mochaFile=./TEST-RESULTS.xml
-2019-01-28T12:29:12.1306574Z 
+2019-01-28T12:29:12.1306574Z
 2019-01-28T12:29:12.1306757Z body undefined
 ```
 
@@ -293,7 +407,7 @@ function initialize() {
             'User-Agent': 'request'
         }
     };
-    // Return new promise 
+    // Return new promise
     return new Promise(function(resolve, reject) {
      // Do async job
         request.get(options, function(err, resp, body) {
@@ -354,7 +468,7 @@ That's great.  We need this:
 const { name } = req.query;
 compact.run(name, req).then((result) => {
     ...
-}).catch((error) => { 
+}).catch((error) => {
     ...
 })
 ```
@@ -402,8 +516,8 @@ sendSuccess = (res, message) => data => {
 }
 sendError = (res, status, message) => error => {
   res.status(status || error.status).json({
-    type: 'error', 
-    message: message || error.message, 
+    type: 'error',
+    message: message || error.message,
     error
   })
 }
@@ -434,10 +548,10 @@ npm install eslint --save-dev
 -bash: /node_modules/.bin/eslint: No such file or directory
 npm run lint -- --init
 ? How would you like to configure ESLint? Use a popular style guide
-? Which style guide do you want to follow? 
-❯ Airbnb (https://github.com/airbnb/javascript) 
-  Standard (https://github.com/standard/standard) 
-  Google (https://github.com/google/eslint-config-google) 
+? Which style guide do you want to follow?
+❯ Airbnb (https://github.com/airbnb/javascript)
+  Standard (https://github.com/standard/standard)
+  Google (https://github.com/google/eslint-config-google)
 ```
 
 Airbnb standard or Google?
@@ -482,7 +596,7 @@ npm ERR! npm  v3.10.9
 npm ERR! code ELIFECYCLE
 npm ERR! app-service-hello-world@0.0.1 lint: `eslint **/*.js`
 npm ERR! Exit status 1
-npm ERR! 
+npm ERR!
 npm ERR! Failed at the app-service-hello-world@0.0.1 lint script 'eslint **/*.js'.
 ```
 
@@ -646,9 +760,9 @@ In an effort to better define the code in the server app, we're going to be appl
 
 Linting, testing, coverage, deploying are all well underway and working well.
 
-Still to be done, separate Express definitions to at least two files: 
-1. the API declaration (app.js) 
-2. the networking concerns (WWW). 
+Still to be done, separate Express definitions to at least two files:
+1. the API declaration (app.js)
+2. the networking concerns (WWW).
 
 Locate API declarations within components.
 
@@ -660,7 +774,7 @@ Static analysis with Sonarqube or Code Climate.
 
 Delegate anything possible (e.g. static content, gzip) to a reverse proxy.  Options are nginx, HAproxy, S3, CDN.
 
-Create a ‘maintenance endpoint’ for system-related information, like memory usage and REPL, etc in a secured API. 
+Create a ‘maintenance endpoint’ for system-related information, like memory usage and REPL, etc in a secured API.
 
 Use of security-related linter plugins such as eslint-plugin-security
 
@@ -694,15 +808,15 @@ modelService
 modelTesting
 ```
 
-Separate the Express definition to at least two files: 
-1. the API declaration (app.js) 
-2. the networking concerns (WWW). 
+Separate the Express definition to at least two files:
+1. the API declaration (app.js)
+2. the networking concerns (WWW).
 
 Locate API declarations within components.
 
 keys can be read from file and from environment variable.
 secrets are kept outside committed code
-config is hierarchical for easier findability. 
+config is hierarchical for easier findability.
 (example packages: rc, nconf and config)
 
 
@@ -713,32 +827,32 @@ Don’t: API passes ‘Express’ object such as request to DAL & logic layers. 
 ```
 var express = require('Express'),
     util = require ('util'),
-    router = express.Router(), 
+    router = express.Router(),
     usersDBAccess = require('./usersDAL');
 router.get('/', (req, res, next) => {
     usersDBAccess.getByID(req);
 });
-module.exports = router; 
+module.exports = router;
 ```
 
 Do: Create and pass a custom context object.  Testable and accessible by all.  Keep Express in the web layer only.
 ```
 var express = require('Express'),
     util = require ('util'),
-    router = express.Router(), 
-    usersService = require('./usersService'), 
+    router = express.Router(),
+    usersService = require('./usersService'),
     usersDBAccess = require('./usersDAL'),
-    logger = require('logger'); 
+    logger = require('logger');
 router.get('/', (req, res, next) => {
     const contextObject = {
-        user: req.user, 
-            transactionId: UUID.new(), 
-            otherProperties: 'some other properties' 
+        user: req.user,
+            transactionId: UUID.new(),
+            otherProperties: 'some other properties'
     };
-    new DAL(contextObject); 
+    new DAL(contextObject);
     usersDBAccess.getByID(1);
 });
-module.exports = router; 
+module.exports = router;
 ```
 
 
@@ -748,7 +862,7 @@ These were notes from the previous Azure hello world app where linting and testi
 
 A pipeline that includes linting, testing and deployments is a standard feature of the modern DevOps experience.  Our basic choices are:
 * Heroku CI Pipeline
-* Jenkins - complex setup 
+* Jenkins - complex setup
 * CircleCI - flexible CI pipeline without the burden of managing the whole infrastructure
 * Azure DevOps Pipeline - Makes sense for an Azure deployment, but is it free?
 
@@ -759,7 +873,7 @@ After a quick setup with the GitHub repo, and adding a yaml file then pushing to
 
 Maybe try making it fail and push that?
 
-But before getting more into CircleCI, I'd still like to know about the [Azure Pipelines](https://docs.microsoft.com/en-us/azure/devops/pipelines/apps/cd/deploy-docker-webapp?view=azdevops).  That link shows how to deploy a Docker-enabled app to an Azure Web App using Azure Pipelines for CI.  Their sample project is for .NET, so it's not for us.  For this we need a CI build pipeline that publishes a Docker container image. 
+But before getting more into CircleCI, I'd still like to know about the [Azure Pipelines](https://docs.microsoft.com/en-us/azure/devops/pipelines/apps/cd/deploy-docker-webapp?view=azdevops).  That link shows how to deploy a Docker-enabled app to an Azure Web App using Azure Pipelines for CI.  Their sample project is for .NET, so it's not for us.  For this we need a CI build pipeline that publishes a Docker container image.
 
 When reading the [Azure Pipeline docs](https://github.com/MicrosoftDocs/pipelines-javascript) I saw the link to a deo repo with a Node server implemented with the Express.js, tests for the app (in Mocha) which includes an azure-pipelines.yml file that can be used to build the app.
 
@@ -812,9 +926,9 @@ Ran all test suites matching /src/i.
 How is it faster to run coverage with tests than just tests alone?  Anyhow, why is there zero coverage?
 
 
-### Code coverage tools 
+### Code coverage tools
 
-Like 
+Like
 ```
 Istanbul
 NYC
@@ -823,10 +937,10 @@ Corbertura
 The initial project used Jest for testing which comes with its own coverage tools.  That seems like all we need.  If we can set up Jest again and ditch Mocha without breaking the build, will try that again.  
 If we can use
 
-### Static analysis 
+### Static analysis
 
-Tools for the CI build should fail when it finds code smells. 
-For example, detect duplications, perform advanced analysis (e.g. code complexity) and follow the history and progress of code issues. 
+Tools for the CI build should fail when it finds code smells.
+For example, detect duplications, perform advanced analysis (e.g. code complexity) and follow the history and progress of code issues.
 
 Options:
 ```
@@ -839,7 +953,7 @@ Code Climate (1,500+ stars)
 
 Options:
 * nginx
-* HAproxy 
+* HAproxy
 * S3
 * CDN
 
@@ -861,7 +975,7 @@ This is part 5.12..  It's what AWS Lambda enforces, right?
 
 ### Create a ‘maintenance endpoint’
 
-Expose a set of system-related information, like memory usage and REPL, etc in a secured API. 
+Expose a set of system-related information, like memory usage and REPL, etc in a secured API.
 
 
 ### Embrace linter security rules
@@ -943,7 +1057,7 @@ PublishBuildArtifacts pending
 Post-job: Get sources
 ```
 
-All succeeded and I even got an email saying the build succeeded.  How civilized.  This is definitely the way to do. 
+All succeeded and I even got an email saying the build succeeded.  How civilized.  This is definitely the way to do.
 
 Next, we can show off and add a CI status badge to the repo.  The portal makes this easy.  In Azure Pipelines, go to the Build page to view the list of pipelines.  Select the pipeline that was created and in the context menu for the pipeline, select Status badge.
 
@@ -1004,7 +1118,7 @@ That all looks like this:
     testResultsFiles: '**/TEST-RESULTS.xml'
     testRunTitle: 'Test results for JavaScript'
 - task: PublishCodeCoverageResults@1
-  inputs: 
+  inputs:
     codeCoverageTool: Cobertura
     summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/*coverage.xml'
     reportDirectory: '$(System.DefaultWorkingDirectory)/**/coverage'
