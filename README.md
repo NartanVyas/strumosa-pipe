@@ -142,8 +142,244 @@ The result for the characters API looks like this:
 We could collect the character names, ids and create the thumbnail links and send only these to the app.
 Or just forward the whole thing and let the app decide what to show.  Since this is just an exercise, let's go with the latter.
 
+Just for fun we looked at the names:
+```
+3-D Man
+A-Bomb (HAS)
+A.I.M.
+Aaron Stack
+Abomination (Emil Blonsky)
+Abomination (Ultimate)
+Absorbing Man
+Abyss
+Abyss (Age of Apocalypse)
+Adam Destine
+Adam Warlock
+Aegis (Trey Rollins)
+Agent Brand
+Agent X (Nijo)
+Agent Zero
+Agents of Atlas
+Aginar
+Air-Walker (Gabriel Lan)
+Ajak
+Ajaxis
+```
+
+The thumbnail apparently would be another API call like this:
+```
+http://i.annihil.us/u/prod/marvel/i/mg/c/e0/535fecbbb9784
+```
+
+The data model looks like this:
+```
+"id" : 1011334,
+"name" : 3-D Man,
+"description" : ,
+"modified" : 2014-04-29T14:18:17-0400,
+"thumbnail" : -{
+  "path" : http://i.annihil.us/u/prod/marvel/i/mg/c/e0/535fecbbb9784,
+  "extension" : jpg
+},
+"resourceURI" : http://gateway.marvel.com/v1/public/characters/1011334,
+"comics" : +{ ... },
+"series" : +{ ... },
+"stories" : +{ ... },
+"events" : +{ ... },
+"urls" : +{ ... },
+```
+
+So, I'm guessing we will need to provide a get thumbnail endpoint to get those, as they would have the same restrictions as the other server side calls with the hash, and keys, etc.
 
 
+### The in-memory caches
+
+We will use [this repo](https://www.npmjs.com/package/memory-cache) to same time.
+
+It was a simple case to use it.  Right now it is in the server.js file.  It might be better to move it into another file and use it as middleware for all requests.
+
+Another improvement would be to add an expiration time so that the data could be refreshed on a schedule, or let the calling party dictate how long to keep the data.  If we want to start letting the user query particular characters or other details, this might be more of an issue.  As of now, I don't think they will be adding characters too often.
+a
+### The Key Vault
+
+The Azure [Key Vault](https://docs.microsoft.com/en-us/azure/key-vault/about-keys-secrets-and-certificates) feature might be what we need.
+
+The npm package [azure-keyvault](https://www.npmjs.com/package/azure-keyvault) comes up in a google search, but isn't in the docs shown above.  Why not skip reading about that and just use the package?
+
+Although I can't get an idea of how this security works for a private key.
+Part to the example code:
+```
+var clientId = "<to-be-filled>";
+var clientSecret = "<to-be-filled>";
+var vaultUri = "<to-be-filled>";
+```
+
+First of all, they are using var in their documentation.  C'mon, this is Node, not a browser.
+
+Where are the instruction on how to ssh into the environment and set the secrets?   Where is the wizard to do it online?  Back to the first [docs](https://azure.microsoft.com/en-us/resources/samples/key-vault-node-getting-started/):  *The quickstart uses Node.js and Managed service identities (MSIs)*
+
+The steps are:
+1. Create a Key Vault.
+2. Store a secret in Key Vault.
+3. Retrieve a secret from Key Vault.
+4. Create an Azure Web Application.
+5. Enable managed service identities.
+6. Grant the required permissions for the web application to read data from Key vault.
+
+Since we are not going to be doing this in the client (as yet), we only need steps 1-3.  This dance requires the Aure CLI 2.0.4 or later.
+
+We haven
+
+I'm pretty sure I created a resource group before, at least for the website deployment.  Anyhow, I can't find any record of it.  Looking at this command, I'm sure this was done before:
+```
+az keyvault create --name "<YourKeyVaultName>" --resource-group "<YourResourceGroupName>" --location "East US"
+```
+
+Specifically I can remember think I need to change that location (Sydney, Australia here), and then forgetting to and going with the East Coast instead of trying to undo it.
+
+Connected to our DevOps pipeline, there are no task groups and no deployment groups on the project Azure page.
+
+Our notes here remind us that this was the second of the Azure projects:
+*the previous Azure hello world app where linting and testing was added and deployed to an App Services container.*
+
+So is that why we remember creating a group?  There must be a way to find out what the name of the resource group is.  Open up a 'Power Shell' and run:
+```
+Get-AzureRmResourceGroup
+ResourceGroupName : cloud-shell-storage-southeastasia
+Location          : southeastasia
+ProvisioningState : Succeeded
+Tags              :
+ResourceId        : /subscriptions/ad130dfc-ad9f-4c52-adf9-ea9bfa736
+                    70e/resourceGroups/cloud-shell-storage-southeast
+                    asia
+
+ResourceGroupName : myResourceGroup
+Location          : southcentralus
+ProvisioningState : Succeeded
+Tags              :
+ResourceId        : /subscriptions/ad130dfc-ad9f-4c52-adf9-ea9bfa736
+                    70e/resourceGroups/myResourceGroup
+```
+
+That looks like the context of the shell, not this app.  Trying this:
+```
+$ az resource list
+[
+  {
+    "id": "/subscriptions/ad130dfc-ad9f-4c52-adf9-ea9bfa73670e/resourceGroups/cloud-shell-storage-southeastasia/providers/Microsoft.Storage/storageAccounts/cs1ad130dfcad9fx4c52xadf",
+    "identity": null,
+    "kind": "Storage",
+    "location": "southeastasia",
+    "managedBy": null,
+    "name": "cs1ad130dfcad9fx4c52xadf",
+    "plan": null,
+    "properties": null,
+    "resourceGroup": "cloud-shell-storage-southeastasia",
+    "sku": {
+      "capacity": null,
+      "family": null,
+      "model": null,
+      "name": "Standard_LRS",
+      "size": null,
+      "tier": "Standard"
+    },
+    "tags": {
+      "ms-resource-usage": "azure-cloud-shell"
+    },
+    "type": "Microsoft.Storage/storageAccounts"
+  },
+  {
+    "id": "/subscriptions/ad130dfc-ad9f-4c52-adf9-ea9bfa73670e/resourceGroups/myResourceGroup/providers/Microsoft.Web/serverFarms/myAppServicePlan",
+    "identity": null,
+    "kind": "app",
+    "location": "southcentralus",
+    "managedBy": null,
+    "name": "myAppServicePlan",
+    "plan": null,
+    "properties": null,
+    "resourceGroup": "myResourceGroup",
+    "sku": {
+      "capacity": 0,
+      "family": "F",
+      "model": null,
+      "name": "F1",
+      "size": "F1",
+      "tier": "Free"
+    },
+    "tags": null,
+    "type": "Microsoft.Web/serverFarms"
+  },
+  {
+    "id": "/subscriptions/ad130dfc-ad9f-4c52-adf9-ea9bfa73670e/resourceGroups/myResourceGroup/providers/Microsoft.Web/sites/strumosa",
+    "identity": null,
+    "kind": "app",
+    "location": "southcentralus",
+    "managedBy": null,
+    "name": "strumosa",
+    "plan": null,
+    "properties": null,
+    "resourceGroup": "myResourceGroup",
+    "sku": null,
+    "tags": null,
+    "type": "Microsoft.Web/sites"
+  }
+]
+```
+
+So it's either myResourceGroup or strumosa.  Lets try the first one first.  This is the command:
+```
+az keyvault create --name "<YourKeyVaultName>" --resource-group "<YourResourceGroupName>" --location "East US"
+```
+
+So trying this to create the vault:
+```
+az keyvault create --name strumosa_keyvault --resource-group myResourceGroup --location southcentralus
+```
+
+First tried I tried to set the secret, got this:
+```
+Parameter 'secret_name' must conform to the following pattern: '^[0-9a-zA-Z-]+$'.
+```
+
+Trying again with a conformant name and got:
+```
+az keyvault secret set --vault-name private_vault --name marvelPrivateKey --value "none of your biz"
+Max retries exceeded attempting to connect to vault. The vault may not exist or you may need to flush your DNS cache and try again later.
+```
+
+That happened twice.  Couldn't find any docs on how to flush the DNS cache.  It seemed to be a source of pain for some other users.  To view the value contained in the secret as plain text:
+```
+az keyvault secret show --name marvelPrivateKey --vault-name private_vault
+```
+
+However, this gives the same error.  [This may be the solution](https://github.com/Azure/azure-cli/issues/3348), but for now, since the key was already pushed, it's time to move on witht the clien.  I committed to the dev branch and pushed before removing the key.  For some reason, Azure pushed the dev branch thru the pipe and deployed it.  So, the damage is done.  We can get a new secret later and do things correctly when the vault comes back to life.
+
+
+
+### The images
+
+The [docs](https://developer.marvel.com/documentation/images) state: *To build a full image path from an image representation*
+
+1. Take the "path" element from the image representation
+2. Append a variant name to the path element
+3. Append the "extension" element to the variant name
+
+So if you're curious about what 3-D man looks like:
+http://i.annihil.us/u/prod/marvel/i/mg/c/e0/535fecbbb9784,
++ portrait_xlarge
++ .jpg
+= http://i.annihil.us/u/prod/marvel/i/mg/c/e0/535fecbbb9784/portrait_xlarge.jpg
+
+The types are portrait, square and landscape.  May as well use the portrait, in which case we need this info:
+```
+Portrait aspect ratio
+portrait_small	50x75px
+portrait_medium	100x150px
+portrait_xlarge	150x225px
+portrait_fantastic	168x252px
+portrait_uncanny	300x450px
+portrait_incredible	216x324px
+```
 
 #
 ## Static Analysis with Sonarqube

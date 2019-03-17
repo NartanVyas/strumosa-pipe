@@ -1,5 +1,6 @@
 const express = require('express');
 const apis = require('./app/index');
+const cache = require('memory-cache');
 console.log('APIs',apis)
 
 // Constants
@@ -8,6 +9,13 @@ const HOST = '0.0.0.0';
 
 // App
 const app = express();
+
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
 app.get('/', (req, res) => {
   res.send('Hello Node.js Sample.\n');
 });
@@ -32,11 +40,18 @@ app.get('/user', (req, res) => {
 
 app.get('/marvel', (req, res) => {
   const { name } = req.query;
-  apis.marvel.run(name).then((result) => {
-    res.status(200).send(result);
-  }).catch((error) => {
-    res.status(400).send(error);
-  });
+  const { offset } = req.query;
+  const cachedResult = cache.get(name+offset);
+  if (cachedResult !== null) {
+    res.status(200).send(cachedResult);
+  } else {
+    apis.marvel.run(name, offset).then((result) => {
+      cache.put(name+offset, result);
+      res.status(200).send(result);
+    }).catch((error) => {
+      res.status(400).send(error);
+    });
+  }
 });
 
 const port = process.env.PORT || PORT;
