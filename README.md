@@ -6,8 +6,10 @@ This project NodeJS application with an Azure DevOps Pipeline.  It implements ma
 
 
 * [The app is live at this location](http://strumosa.azurewebsites.net/)
-* [The Azure DevOps pipeline dashboard](https://dev.azure.com/timofeyc/strumosa-pipe/_build?definitionId=1)
+* [The Azure DevOps pipeline dashboard](https://dev.azure.com/timofeyc/strumosa-pipe/_build?definitionId=1) (requires login)
 * [SonarCloud static analysis dashboard](https://sonarcloud.io/dashboard?id=timofeysie_strumosa-pipe)
+* [Azure Web App Service](https://portal.azure.com)
+
 
 So far there is linting with the super strict AirBnb stylesheet, testing with Mocha, coverage with Istanbul, and static analysis with Sonarqube.
 

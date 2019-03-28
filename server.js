@@ -40,11 +40,12 @@ app.get('/user', (req, res) => {
 app.get('/marvel', (req, res) => {
   const { name } = req.query;
   const { offset } = req.query;
+  const { limit } = req.query;
   const cachedResult = cache.get(name+offset);
   if (cachedResult !== null) {
     res.status(200).send(cachedResult);
   } else {
-    apis.marvel.run(name, offset).then((result) => {
+    apis.marvel.run(name, offset, limit).then((result) => {
       cache.put(name+offset, result);
       res.status(200).send(result);
     }).catch((error) => {
