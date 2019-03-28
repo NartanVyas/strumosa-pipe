@@ -558,12 +558,12 @@ NodeTool 1 error 3m 13s
 /bin/tar failed with return code: 2
 ```
 
-In PublishTestResults, a [warning] No test result files matching **/TEST-RESULTS.xml were found.
+In PublishTestResults, a [warning] No test result files matching TEST-RESULTS.xml were found.
 That file was removed as we just wanted output to the console instead of an xml file (that's so 2001!).
 But the deployment was skipped, so this wont work yet:
-```
+
 http://strumosa.azurewebsites.net/add?arg1=1&arg2=1
-```
+
 
 So what does error 2 mean?
 ```
@@ -591,11 +591,13 @@ This might be because we are using a starter app that relies partly on the repor
 Will put the coverage back in and try again.  Made a spelling mistake in the commit message.  I hate that.  Should add a spell checker to the pipeline.
 
 Anyhow, after putting back the nyc reporting and corbertura coverage, etc, the NodeTool doesn't fail:
+```
 nyc --reporter=cobertura
     --reporter=html ./node_modules/.bin/mocha tests/**/*.js
     --reporter mocha-junit-reporter
     --reporter-options mochaFile=./TEST-RESULTS.xml"
 }
+```
 
 Our API works.  Now to get the tests to be real.  The successful test report from the pipeline run:
 ```
@@ -726,7 +728,7 @@ This works, but we get the error:
   1:17  error  'request' should be listed in the project's dependencies, not devDependencies  import/no-extraneous-dependencies
 ```
 
-This strict liniting is great!  Might not have caught that otherwise.  Or should we be importing and creating another Express app to make the call from?
+This strict linting is great!  Might not have caught that otherwise.  Or should we be importing and creating another Express app to make the call from?
 
 
 
@@ -1059,7 +1061,7 @@ config is hierarchical for easier findability.
 ### 1.2 Layer your components, keep Express within its boundaries
 *Each component should contain 'layers' - a dedicated object for the web, logic and data access code. This not only draws a clean separation of concerns but also significantly eases mocking and testing the system. Though this is a very common pattern, API developers tend to mix layers by passing the web layer objects (Express req, res) to business logic and data layers - this makes your application dependant on and accessible by Express only Otherwise: App that mixes web objects with other layers can not be accessed by testing code, CRON jobs and other non-Express callers.*
 
-Don’t: API passes ‘Express’ object such as request to DAL & logic layers.  The entire system becomes dependant on an accessible only by Express.  Ap-p is not testable.  All app functions accept a req object.
+Don’t: API passes ‘Express’ object such as request to DAL & logic layers.  The entire system becomes dependant on an accessible only by Express.  The app is then less testable.  All app functions accept a req object.
 ```
 var express = require('Express'),
     util = require ('util'),

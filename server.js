@@ -1,7 +1,6 @@
 const express = require('express');
 const apis = require('./app/index');
 const cache = require('memory-cache');
-console.log('APIs',apis)
 
 // Constants
 const PORT = 3000;

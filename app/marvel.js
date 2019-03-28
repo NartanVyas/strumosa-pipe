@@ -1,9 +1,10 @@
 const request = require('request');
 const crypto = require('crypto');
-
 const endpoint = 'https://gateway.marvel.com/';
-const public_key = '6accae70cb2b1d662586fc171fa02ef0';
-const private_key = '1836e35af75982bd073ba508061cedc46c431f25';
+
+require('dotenv').config();
+const public_key = process.env.PUBLIC_KEY;
+const private_key = process.env.PRIVATE_KEY;
 
 exports.run = (name, offset) => {
   const ts = new Date().getTime();
