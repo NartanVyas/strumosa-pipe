@@ -2,13 +2,13 @@ const request = require('request');
 const curator = require('art-curator');
 
 exports.run = (lang, cat, wdt, wd) => {
-  console.log('cat',cat);
+  console.log('cat', cat);
   const wikiUrl = curator.createWikiDataCategoryUrl(lang, cat, wdt, wd);
   const options = {
     url: wikiUrl,
     headers: {
       'User-Agent': 'request',
-      'Accept': '*/*'
+      Accept: '*/*',
     },
   };
   return new Promise(((resolve, reject) => {

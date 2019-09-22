@@ -23,6 +23,8 @@ There is still a lot to be done.  A partial list includes:
 
 # Table of Contents
 
+1. [Project Workflow](#project-workflow)
+1. [The Items API](#the-items-api)
 1. [The Marvel API](#the-marvel-api)
 1. [Static Analysis with Sonarqube](#static-Analysis-with-Sonarqube)
 1. [API Testing](#api-testing)
@@ -56,10 +58,77 @@ We plan to reproduce the [items controller](https://github.com/timofeysie/calasa
 curator.createWikiDataCategoryUrl(lang, cat, wdt, wd);
 ```
 
+The setup for this project is that we have an server, an index, and a file to handle the specific request, in this case, that items.js file.  Only the arguments we want are passed into the items.js file, so that the Express and HTTP specific functionality is handled in the server.js file.
 
+Here is a brief:
+```
+app.get('/items', (req, res) => {
+  const { category } = req.query;
+  apis.items.run(lang, category, wdt, wd).then((result) => {
+      cache.put(cacheName);
+      res.status(200).send(result);
+  });
+}
+```
+
+The src/index.js file only needs this:
+```
+module.exports.items = require('./items');
+```
+
+Then, the action happens in items.js:
+```
+exports.run = (lang, cat, wdt, wd) => { }
+```
+
+To test locally, npm run and check:
+```
 http://localhost:3000/items?lang=en&category=fallacies&wdt=P31&wd=Q186150
+```
 
+Push to master and test this:
+```
+http://strumosa.azurewebsites.net/items?lang=en&category=fallacies&wdt=P31&wd=Q186150
+```
 
+The response is something like this:
+```
+{
+   "head":{
+      "vars":[
+         "fallacies",
+         "fallaciesLabel",
+         "fallaciesDescription"
+      ]
+   },
+   "results":{
+      "bindings":[
+         {
+            "fallacies":{
+               "type":"uri",
+               "value":"http://www.wikidata.org/entity/Q295150"
+            },
+            "fallaciesLabel":{
+               "xml:lang":"en",
+               "type":"literal",
+               "value":"ecological fallacy"
+            },
+            "fallaciesDescription":{
+               "xml:lang":"en",
+               "type":"literal",
+               "value":"logical fallacy"
+            }
+         },
+         ...
+```
+
+Next up we need to provide a ui for this.  I would image this would include a few input fields and a submit button.  So React or Angular?  Web, mobile, PWA or Electron.  The temptation is to update Loranthifolia to use this.  It already has the static list from WikiData that can be combined with the list from Wikipedia.
+
+However, this app is pretty messy.  Due to a problem with the router, it's all on a single page, and the page class has already grown too big.  The next idea then is to try out the new Ionic React implementation.  As a learning experience, this would be unprecedented, due to the need to become pro at React, and already being a pro at Ionic with Angular.
+
+But I can't rule out Electron.  Creating kiosks are the rage, so that's pretty even with the first two ideas.  It's not going to happen tonight, so give it a bit and let the choice become a little clearer with time.
+
+Might even try out Azure boards and work items.
 
 
 #
