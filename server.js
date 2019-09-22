@@ -37,6 +37,25 @@ app.get('/user', (req, res) => {
   });
 });
 
+app.get('/items', (req, res) => {
+  const { lang } = req.query;
+  const { category } = req.query;
+  const { wdt } = req.query;
+  const { wd } = req.query;
+  const cacheName = lang+category+wdt+wd;
+  const cachedResult = cache.get(cacheName);
+  if (cachedResult !== null) {
+    res.status(200).send(cachedResult);
+  } else {
+    apis.items.run(lang, category, wdt, wd).then((result) => {
+      cache.put(cacheName);
+      res.status(200).send(result);
+    }).catch((error) => {
+      res.status(400).send(error);
+    });
+  }
+});
+
 app.get('/marvel', (req, res) => {
   const { name } = req.query;
   const { offset } = req.query;

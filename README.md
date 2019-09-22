@@ -34,6 +34,33 @@ There is still a lot to be done.  A partial list includes:
 1. [Legal Notices](#legal-notices)
 
 
+#
+## Project workflow
+
+The basics of working with this project are as follows:
+```
+npm start
+npm run test
+npm run lint -- --init
+```
+
+Push to the master branch to kick of a pipeline deployment.
+
+
+
+#
+## The Items API
+
+We plan to reproduce the [items controller](https://github.com/timofeysie/calasasaya/blob/master/controllers/items.controller.js) is the place to start.  It uses the following Curator function:
+```
+curator.createWikiDataCategoryUrl(lang, cat, wdt, wd);
+```
+
+
+http://localhost:3000/items?lang=en&category=fallacies&wdt=P31&wd=Q186150
+
+
+
 
 #
 ## The Marvel API
